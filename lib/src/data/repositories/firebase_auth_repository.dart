@@ -1,0 +1,163 @@
+import 'dart:developer';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
+
+import '../../domain/entities/auth_user.dart';
+import '../../domain/repositories/auth_repository.dart';
+import '../../services/auth_providers.dart';
+import '../../services/firestore_user_service.dart';
+import '../models/auth_user_mapper.dart';
+
+/// Default Firebase implementation of [AuthRepository].
+///
+/// Supports:
+/// - Multi-Firebase-app configurations (inject custom instances)
+/// - Optional Firestore user collection management
+/// - Email/Password and Google Sign-In
+class FirebaseAuthRepository implements AuthRepository {
+  final fb.FirebaseAuth _auth;
+  final EmailAuthProvider _emailProvider;
+  final GoogleAuthService _googleService;
+  final FirestoreUserService? _firestoreService;
+  final bool _createUserCollection;
+
+  /// Creates a [FirebaseAuthRepository].
+  ///
+  /// - [auth]: Optional custom [FirebaseAuth] instance (multi-app support).
+  /// - [firestore]: Optional custom [FirebaseFirestore] instance.
+  /// - [serverClientId]: The Web Client ID from Google Cloud Console.
+  ///   **Required on Android** for Google Sign-In.
+  /// - [clientId]: Optional OAuth client ID (used on iOS/web).
+  /// - [createUserCollection]: Whether to create/update user documents in Firestore.
+  /// - [usersCollectionName]: Name of the Firestore collection for user documents.
+  FirebaseAuthRepository({
+    fb.FirebaseAuth? auth,
+    FirebaseFirestore? firestore,
+    String? serverClientId,
+    String? clientId,
+    bool createUserCollection = false,
+    String usersCollectionName = 'users',
+  })  : _auth = auth ?? fb.FirebaseAuth.instance,
+        _createUserCollection = createUserCollection,
+        _emailProvider = EmailAuthProvider(
+          auth: auth ?? fb.FirebaseAuth.instance,
+        ),
+        _googleService = GoogleAuthService(
+          auth: auth ?? fb.FirebaseAuth.instance,
+          serverClientId: serverClientId,
+          clientId: clientId,
+        ),
+        _firestoreService = createUserCollection && firestore != null
+            ? FirestoreUserService(
+                firestore: firestore,
+                usersCollection: usersCollectionName,
+              )
+            : null;
+
+  @override
+  Stream<AuthUser?> get authStateChanges {
+    return _auth.authStateChanges().map((user) => user?.toDomain());
+  }
+
+  @override
+  Future<AuthUser?> getCurrentUser() async {
+    return _auth.currentUser?.toDomain();
+  }
+
+  @override
+  Future<AuthUser?> initializeSession() async {
+    try {
+      await _googleService.signInSilently();
+    } catch (e) {
+      log('[FirebaseAuthRepository] Silent sign-in failed: $e');
+    }
+
+    final user = _auth.currentUser;
+    if (user != null) {
+      await _syncUserDocument(user);
+      return user.toDomain();
+    }
+    return null;
+  }
+
+  @override
+  Future<AuthUser?> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    final authUser = await _emailProvider.signIn(
+      email: email,
+      password: password,
+    );
+
+    if (authUser != null && _auth.currentUser != null) {
+      await _syncUserDocument(_auth.currentUser!);
+    }
+    return authUser;
+  }
+
+  @override
+  Future<AuthUser?> signUpWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    final authUser = await _emailProvider.register(
+      email: email,
+      password: password,
+    );
+
+    if (authUser != null && _auth.currentUser != null) {
+      await _syncUserDocument(_auth.currentUser!);
+    }
+    return authUser;
+  }
+
+  @override
+  Future<AuthUser?> signInWithGoogle() async {
+    final authUser = await _googleService.signIn();
+
+    if (authUser != null && _auth.currentUser != null) {
+      await _syncUserDocument(_auth.currentUser!);
+    }
+    return authUser;
+  }
+
+  @override
+  Future<void> signOut() async {
+    await _googleService.signOut();
+    await _emailProvider.signOut();
+  }
+
+  @override
+  Future<void> sendEmailVerification() async {
+    await _emailProvider.sendEmailVerification();
+  }
+
+  @override
+  Future<bool> sendPasswordResetEmail({required String email}) async {
+    return await _emailProvider.sendPasswordReset(email: email);
+  }
+
+  @override
+  Future<bool> updateDisplayName({required String name}) async {
+    final success = await _emailProvider.updateDisplayName(name);
+    if (success && _auth.currentUser != null) {
+      await _syncUserDocument(_auth.currentUser!);
+    }
+    return success;
+  }
+
+  @override
+  Future<bool> updatePassword({required String password}) async {
+    return await _emailProvider.updatePassword(password);
+  }
+
+  // -- Private helpers --
+
+  Future<void> _syncUserDocument(fb.User user) async {
+    if (_createUserCollection && _firestoreService != null) {
+      await _firestoreService.createOrUpdateUserDocument(user);
+    }
+  }
+}

@@ -1,0 +1,1 @@
+{"flutter":{"platforms":{"android":{"default":{"projectId":"remote-auth-module","appId":"1:789348142189:android:bc1ab69301a8371cb00364","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"remote-auth-module","configurations":{"android":"1:789348142189:android:bc1ab69301a8371cb00364"}}}}}}
