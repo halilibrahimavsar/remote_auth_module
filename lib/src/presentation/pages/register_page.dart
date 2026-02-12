@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 import '../../bloc/auth_bloc.dart';
+import '../../domain/entities/auth_user.dart';
 
 /// A pre-built, theme-aware registration page.
 ///
@@ -23,7 +24,7 @@ class RegisterPage extends StatefulWidget {
   final VoidCallback? onLoginTap;
 
   /// Called after successful registration.
-  final void Function(AuthenticatedState state)? onRegistered;
+  final void Function(AuthUser user)? onRegistered;
 
   /// Optional title text. Defaults to "Create Account".
   final String title;
@@ -143,6 +144,7 @@ class _RegisterPageState extends State<RegisterPage>
             ),
           );
         } else if (state is EmailVerificationRequiredState) {
+          widget.onRegistered?.call(state.user);
           if (!_isVerificationView) {
             setState(() => _isVerificationView = true);
           }
@@ -153,7 +155,7 @@ class _RegisterPageState extends State<RegisterPage>
             context.read<AuthBloc>().add(const SendEmailVerificationEvent());
           }
         } else if (state is AuthenticatedState) {
-          widget.onRegistered?.call(state);
+          widget.onRegistered?.call(state.user);
         }
       },
       builder: (context, state) {

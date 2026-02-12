@@ -24,7 +24,7 @@ class EmailAuthProvider {
       );
       return credential.user?.toDomain();
     } on FirebaseAuthException catch (e) {
-      throw _mapFirebaseError(e.code);
+      throw mapFirebaseAuthCode(e.code);
     }
   }
 
@@ -39,7 +39,7 @@ class EmailAuthProvider {
       );
       return credential.user?.toDomain();
     } on FirebaseAuthException catch (e) {
-      throw _mapFirebaseError(e.code);
+      throw mapFirebaseAuthCode(e.code);
     }
   }
 
@@ -49,7 +49,7 @@ class EmailAuthProvider {
     try {
       await user.sendEmailVerification();
     } on FirebaseAuthException catch (e) {
-      throw _mapFirebaseError(e.code);
+      throw mapFirebaseAuthCode(e.code);
     }
   }
 
@@ -71,7 +71,7 @@ class EmailAuthProvider {
       await user.reload();
       return true;
     } on FirebaseAuthException catch (e) {
-      throw _mapFirebaseError(e.code);
+      throw mapFirebaseAuthCode(e.code);
     } catch (e) {
       throw GenericAuthException(cause: e);
     }
@@ -85,7 +85,7 @@ class EmailAuthProvider {
       await user.updatePassword(password);
       return true;
     } on FirebaseAuthException catch (e) {
-      throw _mapFirebaseError(e.code);
+      throw mapFirebaseAuthCode(e.code);
     } catch (e) {
       throw GenericAuthException(cause: e);
     }
@@ -97,24 +97,6 @@ class EmailAuthProvider {
     } catch (e) {
       throw SignOutException('Failed to sign out: $e');
     }
-  }
-
-  AuthException _mapFirebaseError(String code) {
-    return switch (code) {
-      'weak-password' => const WeakPasswordException(),
-      'email-already-in-use' => const EmailAlreadyInUseException(),
-      'invalid-email' => const InvalidEmailException(),
-      'too-many-requests' => const TooManyRequestsException(),
-      'user-disabled' => const UserDisabledException(),
-      'user-not-found' => const UserNotFoundException(),
-      'wrong-password' => const WrongPasswordException(),
-      'invalid-credential' => const InvalidCredentialException(),
-      'requires-recent-login' => const RequiresRecentLoginException(),
-      'operation-not-allowed' => const OperationNotAllowedException(),
-      'account-exists-with-different-credential' =>
-        const AccountExistsWithDifferentCredentialException(),
-      _ => GenericAuthException(cause: code),
-    };
   }
 }
 
@@ -227,7 +209,7 @@ class GoogleAuthService {
       );
       throw const GoogleSignInUnavailableException();
     } on FirebaseAuthException catch (e) {
-      throw _mapFirebaseError(e.code);
+      throw mapFirebaseAuthCode(e.code);
     } catch (e) {
       throw GenericAuthException(cause: e);
     }
@@ -259,18 +241,6 @@ class GoogleAuthService {
     } catch (_) {
       // Non-critical
     }
-  }
-
-  AuthException _mapFirebaseError(String code) {
-    return switch (code) {
-      'user-disabled' => const UserDisabledException(),
-      'user-not-found' => const UserNotFoundException(),
-      'invalid-credential' => const InvalidCredentialException(),
-      'account-exists-with-different-credential' =>
-        const AccountExistsWithDifferentCredentialException(),
-      'operation-not-allowed' => const OperationNotAllowedException(),
-      _ => GenericAuthException(cause: code),
-    };
   }
 
   AuthException _mapGoogleSignInError(GoogleSignInException error) {

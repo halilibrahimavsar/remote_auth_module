@@ -288,7 +288,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       return;
     }
 
-    if (!user.isEmailVerified) {
+    // OAuth users (Google, Apple, etc.) don't need email verification
+    // since their email is already verified by the provider.
+    if (!user.isEmailVerified && !user.isOAuthUser) {
       emit(EmailVerificationRequiredState(user));
       return;
     }

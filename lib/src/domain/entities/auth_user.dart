@@ -12,13 +12,21 @@ class AuthUser {
   final String? photoURL;
   final bool isEmailVerified;
 
+  /// The authentication provider IDs for this user (e.g., 'password', 'google.com').
+  final List<String> providerIds;
+
   const AuthUser({
     required this.id,
     required this.email,
     this.displayName,
     this.photoURL,
     required this.isEmailVerified,
+    this.providerIds = const [],
   });
+
+  /// Whether the user signed in via an OAuth provider (e.g., Google, Apple)
+  /// rather than email/password only.
+  bool get isOAuthUser => providerIds.any((p) => p != 'password');
 
   AuthUser copyWith({
     String? id,
@@ -26,6 +34,7 @@ class AuthUser {
     String? displayName,
     String? photoURL,
     bool? isEmailVerified,
+    List<String>? providerIds,
   }) {
     return AuthUser(
       id: id ?? this.id,
@@ -33,6 +42,7 @@ class AuthUser {
       displayName: displayName ?? this.displayName,
       photoURL: photoURL ?? this.photoURL,
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,
+      providerIds: providerIds ?? this.providerIds,
     );
   }
 
@@ -45,12 +55,16 @@ class AuthUser {
           email == other.email &&
           displayName == other.displayName &&
           photoURL == other.photoURL &&
-          isEmailVerified == other.isEmailVerified;
+          isEmailVerified == other.isEmailVerified &&
+          listEquals(providerIds, other.providerIds);
 
   @override
-  int get hashCode => Object.hash(id, email, displayName, photoURL, isEmailVerified);
+  int get hashCode => Object.hash(
+      id, email, displayName, photoURL, isEmailVerified,
+      Object.hashAll(providerIds));
 
   @override
   String toString() =>
-      'AuthUser(id: $id, email: $email, displayName: $displayName, verified: $isEmailVerified)';
+      'AuthUser(id: $id, email: $email, displayName: $displayName, '
+      'verified: $isEmailVerified, providers: $providerIds)';
 }

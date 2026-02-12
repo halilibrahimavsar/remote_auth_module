@@ -22,6 +22,19 @@ class FirebaseAuthRepository implements AuthRepository {
   final FirestoreUserService? _firestoreService;
   final bool _createUserCollection;
 
+  /// Internal constructor — use the public factory instead.
+  FirebaseAuthRepository._({
+    required fb.FirebaseAuth auth,
+    required bool createUserCollection,
+    required EmailAuthProvider emailProvider,
+    required GoogleAuthService googleService,
+    FirestoreUserService? firestoreService,
+  })  : _auth = auth,
+        _createUserCollection = createUserCollection,
+        _emailProvider = emailProvider,
+        _googleService = googleService,
+        _firestoreService = firestoreService;
+
   /// Creates a [FirebaseAuthRepository].
   ///
   /// - [auth]: Optional custom [FirebaseAuth] instance (multi-app support).
@@ -31,29 +44,32 @@ class FirebaseAuthRepository implements AuthRepository {
   /// - [clientId]: Optional OAuth client ID (used on iOS/web).
   /// - [createUserCollection]: Whether to create/update user documents in Firestore.
   /// - [usersCollectionName]: Name of the Firestore collection for user documents.
-  FirebaseAuthRepository({
+  factory FirebaseAuthRepository({
     fb.FirebaseAuth? auth,
     FirebaseFirestore? firestore,
     String? serverClientId,
     String? clientId,
     bool createUserCollection = false,
     String usersCollectionName = 'users',
-  })  : _auth = auth ?? fb.FirebaseAuth.instance,
-        _createUserCollection = createUserCollection,
-        _emailProvider = EmailAuthProvider(
-          auth: auth ?? fb.FirebaseAuth.instance,
-        ),
-        _googleService = GoogleAuthService(
-          auth: auth ?? fb.FirebaseAuth.instance,
-          serverClientId: serverClientId,
-          clientId: clientId,
-        ),
-        _firestoreService = createUserCollection && firestore != null
-            ? FirestoreUserService(
-                firestore: firestore,
-                usersCollection: usersCollectionName,
-              )
-            : null;
+  }) {
+    final effectiveAuth = auth ?? fb.FirebaseAuth.instance;
+    return FirebaseAuthRepository._(
+      auth: effectiveAuth,
+      createUserCollection: createUserCollection,
+      emailProvider: EmailAuthProvider(auth: effectiveAuth),
+      googleService: GoogleAuthService(
+        auth: effectiveAuth,
+        serverClientId: serverClientId,
+        clientId: clientId,
+      ),
+      firestoreService: createUserCollection && firestore != null
+          ? FirestoreUserService(
+              firestore: firestore,
+              usersCollection: usersCollectionName,
+            )
+          : null,
+    );
+  }
 
   @override
   Stream<AuthUser?> get authStateChanges {
@@ -125,7 +141,12 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> signOut() async {
-    await _googleService.signOut();
+    // Sign out from Google first (non-critical if it fails).
+    try {
+      await _googleService.signOut();
+    } catch (_) {}
+
+    // Always sign out from Firebase Auth.
     await _emailProvider.signOut();
   }
 

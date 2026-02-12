@@ -107,4 +107,23 @@ class GoogleSignInUserMismatchException extends AuthException {
             'Google account changed unexpectedly. Please try signing in again.');
 }
 
-
+/// Maps Firebase Auth error codes to typed [AuthException]s.
+///
+/// Shared by [EmailAuthProvider] and [GoogleAuthService] to avoid duplication.
+AuthException mapFirebaseAuthCode(String code) {
+  return switch (code) {
+    'weak-password' => const WeakPasswordException(),
+    'email-already-in-use' => const EmailAlreadyInUseException(),
+    'invalid-email' => const InvalidEmailException(),
+    'too-many-requests' => const TooManyRequestsException(),
+    'user-disabled' => const UserDisabledException(),
+    'user-not-found' => const UserNotFoundException(),
+    'wrong-password' => const WrongPasswordException(),
+    'invalid-credential' => const InvalidCredentialException(),
+    'requires-recent-login' => const RequiresRecentLoginException(),
+    'operation-not-allowed' => const OperationNotAllowedException(),
+    'account-exists-with-different-credential' =>
+      const AccountExistsWithDifferentCredentialException(),
+    _ => GenericAuthException(cause: code),
+  };
+}
