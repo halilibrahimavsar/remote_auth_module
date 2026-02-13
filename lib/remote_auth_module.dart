@@ -1,4 +1,5 @@
-/// Firebase BLoC Auth - A flexible, theme-aware Firebase authentication module.
+/// Firebase remote auth module
+/// A flexible, theme-aware Firebase authentication module.
 ///
 /// Provides BLoC-based auth state management with optional UI pages.
 /// Supports multi-Firebase-app configurations and clean architecture patterns.
