@@ -7,7 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart' show User;
 ///
 /// This is an **optional** service. Enable it by passing
 /// `createUserCollection: true` and a [FirebaseFirestore] instance
-/// when creating the [FirebaseAuthRepository].
+/// when creating FirebaseAuthRepository.
 ///
 /// Supports multi-Firebase-app configurations through injected instances.
 class FirestoreUserService {
@@ -39,6 +39,8 @@ class FirestoreUserService {
         });
       } else {
         await userDoc.set({
+          // Only update lastLoginAt on subsequent logins.
+          // We do NOT overwrite other fields to preserve user changes.
           'lastLoginAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
       }
@@ -49,23 +51,46 @@ class FirestoreUserService {
   }
 
   /// Updates specific fields in the user document.
+  ///
+  /// **Security Note**: This method explicitly blocks updates to immutable fields
+  /// like `uid`, `createdAt`, and `email` (email should be updated via Auth).
+  ///
+  /// Throws [ArgumentError] if [data] contains restricted keys or is empty.
   Future<void> updateUserDocument(String uid, Map<String, dynamic> data) async {
+    if (data.isEmpty) {
+      throw ArgumentError('Update data cannot be empty');
+    }
+
+    const restrictedFields = <String>{'uid', 'createdAt', 'email'};
+    final sensitiveUpdate = data.keys.any(
+      (key) => restrictedFields.contains(key),
+    );
+
+    if (sensitiveUpdate) {
+      throw ArgumentError(
+        'Cannot update restricted fields: ${restrictedFields.join(', ')}',
+      );
+    }
+
     final userDoc = firestore.collection(usersCollection).doc(uid);
     await userDoc.update({...data, 'updatedAt': FieldValue.serverTimestamp()});
   }
 
   /// Returns a [DocumentReference] to the given user's document.
-  DocumentReference getUserDocRef(String uid) {
+  DocumentReference<Map<String, dynamic>> getUserDocRef(String uid) {
     return firestore.collection(usersCollection).doc(uid);
   }
 
   /// Returns a [CollectionReference] to a subcollection under the user document.
-  CollectionReference getUserSubcollection(String uid, String name) {
+  CollectionReference<Map<String, dynamic>> getUserSubcollection(
+    String uid,
+    String name,
+  ) {
     return getUserDocRef(uid).collection(name);
   }
 
   /// Returns a stream of the user's document snapshot.
-  Stream<DocumentSnapshot> getUserStream(String uid) {
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getUserStream(String uid) {
     return firestore.collection(usersCollection).doc(uid).snapshots();
   }
 

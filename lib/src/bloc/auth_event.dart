@@ -40,6 +40,11 @@ class SendEmailVerificationEvent extends AuthEvent {
   const SendEmailVerificationEvent();
 }
 
+/// Refreshes current user state from remote auth provider.
+class RefreshCurrentUserEvent extends AuthEvent {
+  const RefreshCurrentUserEvent();
+}
+
 /// Send password reset email.
 class SendPasswordResetEvent extends AuthEvent {
   final String email;
@@ -54,6 +59,10 @@ class UpdateDisplayNameEvent extends AuthEvent {
 
 /// Update the user's password.
 class UpdatePasswordEvent extends AuthEvent {
-  final String password;
-  const UpdatePasswordEvent({required this.password});
+  final String currentPassword;
+  final String newPassword;
+  const UpdatePasswordEvent({
+    required this.currentPassword,
+    required this.newPassword,
+  });
 }

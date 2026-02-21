@@ -1,13 +1,14 @@
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
-
-import '../../domain/entities/auth_user.dart';
-import '../../domain/repositories/auth_repository.dart';
-import '../../services/auth_providers.dart';
-import '../../services/firestore_user_service.dart';
-import '../models/auth_user_mapper.dart';
+import 'package:remote_auth_module/src/data/models/auth_user_mapper.dart';
+import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
+import 'package:remote_auth_module/src/domain/repositories/auth_repository.dart';
+import 'package:remote_auth_module/src/services/auth_providers.dart';
+import 'package:remote_auth_module/src/services/firestore_user_service.dart';
 
 /// Default Firebase implementation of [AuthRepository].
 ///
@@ -29,16 +30,16 @@ class FirebaseAuthRepository implements AuthRepository {
     required EmailAuthProvider emailProvider,
     required GoogleAuthService googleService,
     FirestoreUserService? firestoreService,
-  })  : _auth = auth,
-        _createUserCollection = createUserCollection,
-        _emailProvider = emailProvider,
-        _googleService = googleService,
-        _firestoreService = firestoreService;
+  }) : _auth = auth,
+       _createUserCollection = createUserCollection,
+       _emailProvider = emailProvider,
+       _googleService = googleService,
+       _firestoreService = firestoreService;
 
   /// Creates a [FirebaseAuthRepository].
   ///
-  /// - [auth]: Optional custom [FirebaseAuth] instance (multi-app support).
-  /// - [firestore]: Optional custom [FirebaseFirestore] instance.
+  /// - [auth]: Optional custom FirebaseAuth instance (multi-app support).
+  /// - [firestore]: Optional custom FirebaseFirestore instance.
   /// - [serverClientId]: The Web Client ID from Google Cloud Console.
   ///   **Required on Android** for Google Sign-In.
   /// - [clientId]: Optional OAuth client ID (used on iOS/web).
@@ -62,12 +63,13 @@ class FirebaseAuthRepository implements AuthRepository {
         serverClientId: serverClientId,
         clientId: clientId,
       ),
-      firestoreService: createUserCollection && firestore != null
-          ? FirestoreUserService(
-              firestore: firestore,
-              usersCollection: usersCollectionName,
-            )
-          : null,
+      firestoreService:
+          createUserCollection && firestore != null
+              ? FirestoreUserService(
+                firestore: firestore,
+                usersCollection: usersCollectionName,
+              )
+              : null,
     );
   }
 
@@ -82,9 +84,30 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<AuthUser?> reloadCurrentUser() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      return null;
+    }
+
+    await currentUser.reload();
+    final refreshedUser = _auth.currentUser;
+    if (refreshedUser != null) {
+      await _syncUserDocument(refreshedUser);
+      return refreshedUser.toDomain();
+    }
+    return null;
+  }
+
+  @override
   Future<AuthUser?> initializeSession() async {
     try {
-      await _googleService.signInSilently();
+      // Bypass silent sign-in on Web. Firebase Auth handles session persistence
+      // automatically on Web. Calling Google's silent sign-in simultaneously on
+      // app start can cause NotAllowedError conflicts with the FedCM/Identity SDK.
+      if (!kIsWeb) {
+        await _googleService.signInSilently();
+      }
     } catch (e) {
       log('[FirebaseAuthRepository] Silent sign-in failed: $e');
     }
@@ -98,7 +121,7 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<AuthUser?> signInWithEmailAndPassword({
+  Future<AuthUser> signInWithEmailAndPassword({
     required String email,
     required String password,
   }) async {
@@ -107,14 +130,14 @@ class FirebaseAuthRepository implements AuthRepository {
       password: password,
     );
 
-    if (authUser != null && _auth.currentUser != null) {
+    if (_auth.currentUser != null) {
       await _syncUserDocument(_auth.currentUser!);
     }
     return authUser;
   }
 
   @override
-  Future<AuthUser?> signUpWithEmailAndPassword({
+  Future<AuthUser> signUpWithEmailAndPassword({
     required String email,
     required String password,
   }) async {
@@ -123,17 +146,17 @@ class FirebaseAuthRepository implements AuthRepository {
       password: password,
     );
 
-    if (authUser != null && _auth.currentUser != null) {
+    if (_auth.currentUser != null) {
       await _syncUserDocument(_auth.currentUser!);
     }
     return authUser;
   }
 
   @override
-  Future<AuthUser?> signInWithGoogle() async {
+  Future<AuthUser> signInWithGoogle() async {
     final authUser = await _googleService.signIn();
 
-    if (authUser != null && _auth.currentUser != null) {
+    if (_auth.currentUser != null) {
       await _syncUserDocument(_auth.currentUser!);
     }
     return authUser;
@@ -156,22 +179,27 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<bool> sendPasswordResetEmail({required String email}) async {
-    return await _emailProvider.sendPasswordReset(email: email);
+  Future<void> sendPasswordResetEmail({required String email}) async {
+    await _emailProvider.sendPasswordReset(email: email);
   }
 
   @override
-  Future<bool> updateDisplayName({required String name}) async {
-    final success = await _emailProvider.updateDisplayName(name);
-    if (success && _auth.currentUser != null) {
+  Future<void> updateDisplayName({required String name}) async {
+    await _emailProvider.updateDisplayName(name);
+    if (_auth.currentUser != null) {
       await _syncUserDocument(_auth.currentUser!);
     }
-    return success;
   }
 
   @override
-  Future<bool> updatePassword({required String password}) async {
-    return await _emailProvider.updatePassword(password);
+  Future<void> updatePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _emailProvider.updatePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
   }
 
   // -- Private helpers --

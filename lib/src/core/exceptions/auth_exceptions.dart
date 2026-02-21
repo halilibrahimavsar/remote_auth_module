@@ -21,17 +21,17 @@ class UserNotFoundException extends AuthException {
 
 class TooManyRequestsException extends AuthException {
   const TooManyRequestsException()
-      : super('Too many requests. Please try again later.');
+    : super('Too many requests. Please try again later.');
 }
 
 class WeakPasswordException extends AuthException {
   const WeakPasswordException()
-      : super('Password is too weak. Please use a stronger password.');
+    : super('Password is too weak. Please use a stronger password.');
 }
 
 class EmailAlreadyInUseException extends AuthException {
   const EmailAlreadyInUseException()
-      : super('An account with this email already exists.');
+    : super('An account with this email already exists.');
 }
 
 class InvalidEmailException extends AuthException {
@@ -44,22 +44,27 @@ class UserNotLoggedInException extends AuthException {
 
 class InvalidCredentialException extends AuthException {
   const InvalidCredentialException()
-      : super('The provided credential is invalid.');
+    : super('The provided credential is invalid.');
 }
 
 class AccountExistsWithDifferentCredentialException extends AuthException {
   const AccountExistsWithDifferentCredentialException()
-      : super('An account already exists with a different sign-in method.');
+    : super('An account already exists with a different sign-in method.');
 }
 
 class OperationNotAllowedException extends AuthException {
   const OperationNotAllowedException()
-      : super('This operation is not allowed. Contact support.');
+    : super('This operation is not allowed. Contact support.');
 }
 
 class RequiresRecentLoginException extends AuthException {
   const RequiresRecentLoginException()
-      : super('Please sign in again before performing this action.');
+    : super('Please sign in again before performing this action.');
+}
+
+class PasswordChangeNotSupportedException extends AuthException {
+  const PasswordChangeNotSupportedException()
+    : super('Password can only be changed for email/password accounts.');
 }
 
 class PasswordResetException extends AuthException {
@@ -69,10 +74,10 @@ class PasswordResetException extends AuthException {
 class GenericAuthException extends AuthException {
   final Object? cause;
   const GenericAuthException({this.cause})
-      : super('An unexpected error occurred.');
+    : super('An unexpected error occurred.');
 
-  @override
-  String toString() => cause?.toString() ?? message;
+  // Removed toString override to prevent leaking internal error details to UI.
+  // Use 'cause' only for internal logging.
 }
 
 class SignOutException extends AuthException {
@@ -81,35 +86,36 @@ class SignOutException extends AuthException {
 
 class GoogleSignInCancelledException extends AuthException {
   const GoogleSignInCancelledException()
-      : super('Google sign-in was cancelled.');
+    : super('Google sign-in was cancelled.');
 }
 
 class GoogleSignInInterruptedException extends AuthException {
   const GoogleSignInInterruptedException()
-      : super('Google sign-in was interrupted. Please try again.');
+    : super('Google sign-in was interrupted. Please try again.');
 }
 
 class GoogleSignInConfigurationException extends AuthException {
   const GoogleSignInConfigurationException()
-      : super(
-          'Google sign-in is not configured correctly. Check OAuth client IDs and app setup.',
-        );
+    : super(
+        'Google sign-in is not configured correctly. Check OAuth client IDs and app setup.',
+      );
 }
 
 class GoogleSignInUnavailableException extends AuthException {
   const GoogleSignInUnavailableException()
-      : super('Google sign-in is currently unavailable on this device.');
+    : super('Google sign-in is currently unavailable on this device.');
 }
 
 class GoogleSignInUserMismatchException extends AuthException {
   const GoogleSignInUserMismatchException()
-      : super(
-            'Google account changed unexpectedly. Please try signing in again.');
+    : super(
+        'Google account changed unexpectedly. Please try signing in again.',
+      );
 }
 
 /// Maps Firebase Auth error codes to typed [AuthException]s.
 ///
-/// Shared by [EmailAuthProvider] and [GoogleAuthService] to avoid duplication.
+/// Shared by EmailAuthProvider and GoogleAuthService to avoid duplication.
 AuthException mapFirebaseAuthCode(String code) {
   return switch (code) {
     'weak-password' => const WeakPasswordException(),

@@ -1,40 +1,22 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:remote_auth_module/src/bloc/auth_bloc.dart';
+import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
+import 'package:remote_auth_module/src/presentation/pages/email_verification_page.dart';
+import 'package:remote_auth_module/src/presentation/widgets/auth_action_button.dart';
+import 'package:remote_auth_module/src/presentation/widgets/auth_glass_card.dart';
+import 'package:remote_auth_module/src/presentation/widgets/auth_gradient_scaffold.dart';
+import 'package:remote_auth_module/src/presentation/widgets/auth_input_field.dart';
+import 'package:remote_auth_module/src/presentation/widgets/auth_status_banner.dart';
+import 'package:remote_auth_module/src/services/remember_me_service.dart';
 
-import '../../bloc/auth_bloc.dart';
-
-/// A pre-built, theme-aware login page.
-///
-/// Uses the host app's [ThemeData] for all styling.
-/// Navigation is controlled via callbacks.
-///
-/// ```dart
-/// LoginPage(
-///   onRegisterTap: () => Navigator.push(...),
-///   onForgotPasswordTap: () => Navigator.push(...),
-///   onAuthenticated: (user) => Navigator.pushReplacement(...),
-/// )
-/// ```
 class LoginPage extends StatefulWidget {
-  /// Called when the user taps "Create Account".
   final VoidCallback? onRegisterTap;
-
-  /// Called when the user taps "Forgot Password?".
   final VoidCallback? onForgotPasswordTap;
-
-  /// Called when authentication succeeds.
-  final void Function(AuthenticatedState state)? onAuthenticated;
-
-  /// Optional custom logo widget.
+  final void Function(AuthUser user)? onAuthenticated;
+  final void Function(AuthUser user)? onVerificationRequired;
   final Widget? logo;
-
-  /// Optional title text. Defaults to "Welcome Back".
   final String title;
-
-  /// Whether to show the Google sign-in button.
   final bool showGoogleSignIn;
 
   const LoginPage({
@@ -42,6 +24,7 @@ class LoginPage extends StatefulWidget {
     this.onRegisterTap,
     this.onForgotPasswordTap,
     this.onAuthenticated,
+    this.onVerificationRequired,
     this.logo,
     this.title = 'Welcome Back',
     this.showGoogleSignIn = true,
@@ -51,441 +34,250 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage>
-    with SingleTickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage> {
   late final TextEditingController _emailController;
   late final TextEditingController _passwordController;
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
+  final RememberMeService _rememberMeService = RememberMeService();
 
   bool _obscurePassword = true;
+  bool _rememberMe = true;
+  bool _didPushVerificationPage = false;
 
   @override
   void initState() {
     super.initState();
     _emailController = TextEditingController();
     _passwordController = TextEditingController();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _fadeAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutCubic,
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOut,
-    ));
-    _animationController.forward();
+    _loadRememberMe();
+  }
+
+  Future<void> _loadRememberMe() async {
+    final value = await _rememberMeService.load();
+    if (mounted) {
+      setState(() => _rememberMe = value);
+    }
   }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _animationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state is AuthErrorState) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: colorScheme.error,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
-        } else if (state is PasswordResetSentState) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Password reset email sent.'),
-              backgroundColor: colorScheme.primary,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        } else if (state is AuthenticatedState) {
-          widget.onAuthenticated?.call(state);
+        if (state is AuthenticatedState) {
+          widget.onAuthenticated?.call(state.user);
+          return;
+        }
+
+        if (state is EmailVerificationRequiredState) {
+          widget.onVerificationRequired?.call(state.user);
+          if (widget.onVerificationRequired == null &&
+              !_didPushVerificationPage) {
+            _didPushVerificationPage = true;
+            Navigator.of(context)
+                .push(
+                  MaterialPageRoute<void>(
+                    builder:
+                        (_) => BlocProvider.value(
+                          value: context.read<AuthBloc>(),
+                          child: EmailVerificationPage(user: state.user),
+                        ),
+                  ),
+                )
+                .whenComplete(() => _didPushVerificationPage = false);
+          }
         }
       },
       builder: (context, state) {
-        return Scaffold(
-          extendBodyBehindAppBar: true,
-          body: Stack(
-            children: [
-              // Gradient background using theme colors
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      colorScheme.primary,
-                      colorScheme.secondary,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+        final errorMessage = state is AuthErrorState ? state.message : null;
+
+        return AuthGradientScaffold(
+          isLoading: state is AuthLoadingState,
+          child: AuthGlassCard(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child:
+                      widget.logo ??
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: colorScheme.onPrimary.withValues(alpha: 0.18),
+                        ),
+                        child: Icon(
+                          Icons.lock_outline,
+                          color: colorScheme.onPrimary,
+                          size: 36,
+                        ),
+                      ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  widget.title,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: colorScheme.onPrimary,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-              ),
-
-              // Content
-              SafeArea(
-                child: Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: SlideTransition(
-                        position: _slideAnimation,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(25),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                            child: Container(
-                              padding: const EdgeInsets.all(30),
-                              decoration: BoxDecoration(
-                                color: colorScheme.surface.withValues(
-                                  alpha: 0.15,
-                                ),
-                                borderRadius: BorderRadius.circular(25),
-                                border: Border.all(
-                                  color: colorScheme.onPrimary.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                ),
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // Logo
-                                  if (widget.logo != null) ...[
-                                    widget.logo!,
-                                    const SizedBox(height: 20),
-                                  ],
-
-                                  // Title
-                                  Text(
-                                    widget.title,
-                                    style: theme.textTheme.headlineMedium
-                                        ?.copyWith(
-                                      color: colorScheme.onPrimary,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  if (state is AuthErrorState) ...[
-                                    const SizedBox(height: 16),
-                                    _buildStatusBanner(
-                                      message: state.message,
-                                      isError: true,
-                                    ),
-                                  ],
-                                  const SizedBox(height: 30),
-
-                                  // Email field
-                                  _buildTextField(
-                                    label: 'Email',
-                                    icon: Icons.email_outlined,
-                                    controller: _emailController,
-                                    keyboardType: TextInputType.emailAddress,
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  // Password field
-                                  _buildTextField(
-                                    label: 'Password',
-                                    icon: Icons.lock_outline,
-                                    controller: _passwordController,
-                                    obscure: _obscurePassword,
-                                    onToggleObscure: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
-                                    },
-                                  ),
-                                  const SizedBox(height: 10),
-
-                                  // Forgot password
-                                  if (widget.onForgotPasswordTap != null)
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: TextButton(
-                                        onPressed: widget.onForgotPasswordTap,
-                                        child: Text(
-                                          'Forgot Password?',
-                                          style: TextStyle(
-                                            color: colorScheme.onPrimary
-                                                .withValues(alpha: 0.8),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  const SizedBox(height: 20),
-
-                                  // Sign in button
-                                  _buildPrimaryButton(
-                                    label: 'Sign In',
-                                    onTap: _handleSignIn,
-                                  ),
-
-                                  // Google sign in
-                                  if (widget.showGoogleSignIn) ...[
-                                    const SizedBox(height: 20),
-                                    _buildDivider(),
-                                    const SizedBox(height: 20),
-                                    _buildOutlinedButton(
-                                      label: 'Continue with Google',
-                                      icon: Icons.g_mobiledata,
-                                      onTap: () {
-                                        context
-                                            .read<AuthBloc>()
-                                            .add(const SignInWithGoogleEvent());
-                                      },
-                                    ),
-                                  ],
-
-                                  // Register link
-                                  if (widget.onRegisterTap != null) ...[
-                                    const SizedBox(height: 20),
-                                    TextButton(
-                                      onPressed: widget.onRegisterTap,
-                                      child: Text(
-                                        "Don't have an account? Sign Up",
-                                        style: TextStyle(
-                                          color: colorScheme.onPrimary
-                                              .withValues(alpha: 0.8),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
+                const SizedBox(height: 6),
+                Text(
+                  'Sign in to continue',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onPrimary.withValues(alpha: 0.72),
+                  ),
+                ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 16),
+                  AuthStatusBanner(message: errorMessage),
+                ],
+                const SizedBox(height: 26),
+                AuthInputField(
+                  controller: _emailController,
+                  label: 'Email',
+                  icon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 14),
+                AuthInputField(
+                  controller: _passwordController,
+                  label: 'Password',
+                  icon: Icons.lock_outline,
+                  obscureText: _obscurePassword,
+                  onToggleObscure:
+                      () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: () => setState(() => _rememberMe = !_rememberMe),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Row(
+                        children: [
+                          Checkbox(
+                            value: _rememberMe,
+                            onChanged:
+                                (_) =>
+                                    setState(() => _rememberMe = !_rememberMe),
+                            activeColor: colorScheme.onPrimary,
+                            checkColor: colorScheme.primary,
+                          ),
+                          Text(
+                            'Remember me',
+                            style: TextStyle(
+                              color: colorScheme.onPrimary.withValues(
+                                alpha: 0.84,
                               ),
                             ),
                           ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    if (widget.onForgotPasswordTap != null)
+                      TextButton(
+                        onPressed: widget.onForgotPasswordTap,
+                        child: Text(
+                          'Forgot password?',
+                          style: TextStyle(
+                            color: colorScheme.onPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                  ],
                 ),
-              ),
-
-              // Loading overlay
-              if (state is AuthLoadingState)
-                BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    child: Center(
-                      child: LoadingAnimationWidget.staggeredDotsWave(
+                const SizedBox(height: 8),
+                AuthActionButton(
+                  label: 'Sign In',
+                  onPressed: _handleSignIn,
+                  icon: Icons.login,
+                ),
+                if (widget.showGoogleSignIn) ...[
+                  const SizedBox(height: 14),
+                  AuthActionButton(
+                    label: 'Continue with Google',
+                    style: AuthActionButtonStyle.subtle,
+                    onPressed: _handleGoogleSignIn,
+                    icon: Icons.g_mobiledata,
+                  ),
+                ],
+                if (widget.onRegisterTap != null) ...[
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: widget.onRegisterTap,
+                    child: Text(
+                      "Don't have an account? Sign Up",
+                      style: TextStyle(
                         color: colorScheme.onPrimary,
-                        size: 60,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-                ),
-            ],
+                ],
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  void _handleSignIn() {
+  Future<void> _handleSignIn() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
-    if (email.isEmpty || password.isEmpty) return;
 
-    // Basic email format validation
-    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please enter a valid email address.'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+    if (email.isEmpty || password.isEmpty) {
+      _showError('Email and password are required.');
+      return;
+    }
+
+    final isValidEmail = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email);
+    if (!isValidEmail) {
+      _showError('Please enter a valid email address.');
+      return;
+    }
+
+    await _rememberMeService.save(value: _rememberMe);
+    if (!mounted) {
       return;
     }
 
     context.read<AuthBloc>().add(
-          SignInWithEmailEvent(email: email, password: password),
-        );
-  }
-
-  Widget _buildTextField({
-    required String label,
-    required IconData icon,
-    required TextEditingController controller,
-    bool obscure = false,
-    VoidCallback? onToggleObscure,
-    TextInputType? keyboardType,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: colorScheme.onPrimary.withValues(alpha: 0.15),
-        border: Border.all(
-          color: colorScheme.onPrimary.withValues(alpha: 0.3),
-        ),
-      ),
-      child: TextField(
-        controller: controller,
-        obscureText: obscure,
-        keyboardType: keyboardType,
-        style: TextStyle(color: colorScheme.onPrimary),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(
-            color: colorScheme.onPrimary.withValues(alpha: 0.8),
-          ),
-          border: InputBorder.none,
-          prefixIcon: Icon(icon, color: colorScheme.onPrimary),
-          suffixIcon: onToggleObscure != null
-              ? GestureDetector(
-                  onTap: onToggleObscure,
-                  child: Icon(
-                    obscure ? Icons.visibility_off : Icons.visibility,
-                    color: colorScheme.onPrimary,
-                  ),
-                )
-              : null,
-        ),
-      ),
+      SignInWithEmailEvent(email: email, password: password),
     );
   }
 
-  Widget _buildPrimaryButton({
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
+  Future<void> _handleGoogleSignIn() async {
+    await _rememberMeService.save(value: _rememberMe);
+    if (!mounted) {
+      return;
+    }
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: colorScheme.onPrimary,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: colorScheme.primary,
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
+    context.read<AuthBloc>().add(const SignInWithGoogleEvent());
   }
 
-  Widget _buildOutlinedButton({
-    required String label,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
+  void _showError(String message) {
     final colorScheme = Theme.of(context).colorScheme;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: colorScheme.onPrimary.withValues(alpha: 0.5),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: colorScheme.onPrimary, size: 24),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: TextStyle(
-                color: colorScheme.onPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDivider() {
-    final color =
-        Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.3);
-    return Row(
-      children: [
-        Expanded(child: Divider(color: color)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'OR',
-            style: TextStyle(color: color, fontWeight: FontWeight.w500),
-          ),
-        ),
-        Expanded(child: Divider(color: color)),
-      ],
-    );
-  }
-
-  Widget _buildStatusBanner({
-    required String message,
-    required bool isError,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final accent = isError ? colorScheme.error : colorScheme.primary;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: accent.withValues(alpha: 0.16),
-        border: Border.all(
-          color: accent.withValues(alpha: 0.35),
-        ),
-      ),
-      child: Text(
-        message,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colorScheme.onPrimary,
-            ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: colorScheme.error,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

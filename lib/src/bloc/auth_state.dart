@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../domain/entities/auth_user.dart';
+import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
 
 /// Base class for all authentication states.
 @immutable

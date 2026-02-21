@@ -2,15 +2,15 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:remote_auth_module/src/bloc/auth_event.dart';
+import 'package:remote_auth_module/src/bloc/auth_state.dart';
+import 'package:remote_auth_module/src/core/exceptions/auth_exceptions.dart';
+import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
+import 'package:remote_auth_module/src/domain/repositories/auth_repository.dart';
+import 'package:remote_auth_module/src/services/remember_me_service.dart';
 
-import '../core/exceptions/auth_exceptions.dart';
-import '../domain/entities/auth_user.dart';
-import '../domain/repositories/auth_repository.dart';
-import 'auth_event.dart';
-import 'auth_state.dart';
-
-export 'auth_event.dart';
-export 'auth_state.dart';
+export 'package:remote_auth_module/src/bloc/auth_event.dart';
+export 'package:remote_auth_module/src/bloc/auth_state.dart';
 
 /// Internal event: authentication state changed (from stream).
 class _AuthStateChangedEvent extends AuthEvent {
@@ -20,7 +20,7 @@ class _AuthStateChangedEvent extends AuthEvent {
 
 /// BLoC for managing authentication state.
 ///
-/// Requires an [AuthRepository] implementation (typically [FirebaseAuthRepository]).
+/// Requires an [AuthRepository] implementation (typically FirebaseAuthRepository).
 /// The host app provides this through its DI system (GetIt, Injectable, etc.).
 ///
 /// ```dart
@@ -41,11 +41,15 @@ class _AuthStateChangedEvent extends AuthEvent {
 /// ```
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _repository;
-  StreamSubscription? _authStateSubscription;
+  final RememberMeService _rememberMeService;
+  StreamSubscription<AuthUser?>? _authStateSubscription;
 
-  AuthBloc({required AuthRepository repository})
-      : _repository = repository,
-        super(const AuthInitialState()) {
+  AuthBloc({
+    required AuthRepository repository,
+    RememberMeService? rememberMeService,
+  }) : _repository = repository,
+       _rememberMeService = rememberMeService ?? RememberMeService(),
+       super(const AuthInitialState()) {
     // Register event handlers
     on<InitializeAuthEvent>(_onInitialize);
     on<SignInWithEmailEvent>(_onSignInWithEmail);
@@ -53,6 +57,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<SignInWithGoogleEvent>(_onSignInWithGoogle);
     on<SignOutEvent>(_onSignOut);
     on<SendEmailVerificationEvent>(_onSendEmailVerification);
+    on<RefreshCurrentUserEvent>(_onRefreshCurrentUser);
     on<SendPasswordResetEvent>(_onSendPasswordReset);
     on<UpdateDisplayNameEvent>(_onUpdateDisplayName);
     on<UpdatePasswordEvent>(_onUpdatePassword);
@@ -65,21 +70,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoadingState());
     try {
-      final user = await _repository.initializeSession();
+      final shouldRememberSession = await _rememberMeService.load();
+      if (!shouldRememberSession) {
+        await _repository.signOut();
+        emit(const UnauthenticatedState());
+        await _subscribeToAuthStateChanges();
+        return;
+      }
+
+      final user = await _repository.initializeSession().timeout(
+        const Duration(seconds: 15),
+      );
       _emitStateForUser(emit, user);
 
-      // Listen to auth state changes for reactive updates
-      await _authStateSubscription?.cancel();
-      _authStateSubscription = _repository.authStateChanges.listen((user) {
-        add(_AuthStateChangedEvent(user));
-      });
+      await _subscribeToAuthStateChanges();
     } catch (error, stackTrace) {
       log(
-        '[AuthBloc] Initialize failed',
+        '[AuthBloc] Initialize failed or timed out',
         error: error,
         stackTrace: stackTrace,
       );
       emit(const UnauthenticatedState());
+      await _subscribeToAuthStateChanges();
     }
   }
 
@@ -87,6 +99,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     _AuthStateChangedEvent event,
     Emitter<AuthState> emit,
   ) {
+    // Skip re-emitting if we are already authenticated as the same user.
+    // Firebase's authStateChanges stream always fires after a manual sign-in,
+    // which would otherwise call onAuthenticated twice in the UI layer.
+    final current = state;
+    if (current is AuthenticatedState && event.user?.id == current.user.id) {
+      return;
+    }
     _emitStateForUser(emit, event.user);
   }
 
@@ -100,20 +119,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         email: event.email,
         password: event.password,
       );
-
-      if (user == null) {
-        emit(const AuthErrorState('Sign in failed.'));
-        return;
-      }
-
       _emitStateForUser(emit, user);
     } catch (error, stackTrace) {
-      _emitFailure(
-        emit,
-        error,
-        stackTrace,
-        action: 'sign in with email',
-      );
+      _emitFailure(emit, error, stackTrace, action: 'sign in with email');
     }
   }
 
@@ -128,18 +136,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
       );
 
-      if (user != null) {
-        emit(EmailVerificationRequiredState(user));
-      } else {
-        emit(const AuthErrorState('Registration failed.'));
+      _emitStateForUser(emit, user);
+
+      if (!user.isEmailVerified && !user.isOAuthUser) {
+        add(const SendEmailVerificationEvent());
       }
     } catch (error, stackTrace) {
-      _emitFailure(
-        emit,
-        error,
-        stackTrace,
-        action: 'register with email',
-      );
+      _emitFailure(emit, error, stackTrace, action: 'register with email');
     }
   }
 
@@ -150,42 +153,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthLoadingState());
     try {
       final user = await _repository.signInWithGoogle();
-      if (user != null) {
-        _emitStateForUser(emit, user);
-      } else {
-        // User cancelled the sign-in flow
-        emit(const UnauthenticatedState());
-      }
+      _emitStateForUser(emit, user);
     } catch (error, stackTrace) {
       if (error is GoogleSignInCancelledException) {
         emit(const UnauthenticatedState());
         return;
       }
 
-      _emitFailure(
-        emit,
-        error,
-        stackTrace,
-        action: 'sign in with Google',
-      );
+      _emitFailure(emit, error, stackTrace, action: 'sign in with Google');
     }
   }
 
-  Future<void> _onSignOut(
-    SignOutEvent event,
-    Emitter<AuthState> emit,
-  ) async {
+  Future<void> _onSignOut(SignOutEvent event, Emitter<AuthState> emit) async {
     emit(const AuthLoadingState());
     try {
       await _repository.signOut();
       emit(const UnauthenticatedState());
     } catch (error, stackTrace) {
-      _emitFailure(
-        emit,
-        error,
-        stackTrace,
-        action: 'sign out',
-      );
+      _emitFailure(emit, error, stackTrace, action: 'sign out');
     }
   }
 
@@ -196,16 +181,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       await _repository.sendEmailVerification();
       emit(const EmailVerificationSentState());
-
-      final user = await _repository.getCurrentUser();
-      _emitStateForUser(emit, user);
+      await _emitStateForCurrentUserSafely(emit, reload: true);
     } catch (error, stackTrace) {
-      _emitFailure(
-        emit,
-        error,
-        stackTrace,
-        action: 'send email verification',
-      );
+      _emitFailure(emit, error, stackTrace, action: 'send email verification');
+      await _emitStateForCurrentUserSafely(emit, reload: true);
+    }
+  }
+
+  Future<void> _onRefreshCurrentUser(
+    RefreshCurrentUserEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoadingState());
+    try {
+      await _emitStateForCurrentUser(emit, reload: true);
+    } catch (error, stackTrace) {
+      _emitFailure(emit, error, stackTrace, action: 'refresh current user');
+      await _emitStateForCurrentUserSafely(emit, reload: false);
     }
   }
 
@@ -217,15 +209,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       await _repository.sendPasswordResetEmail(email: event.email);
       emit(const PasswordResetSentState());
-      final user = await _repository.getCurrentUser();
-      _emitStateForUser(emit, user);
+      await _emitStateForCurrentUser(emit, reload: false);
     } catch (error, stackTrace) {
-      _emitFailure(
-        emit,
-        error,
-        stackTrace,
-        action: 'send password reset',
-      );
+      _emitFailure(emit, error, stackTrace, action: 'send password reset');
     }
   }
 
@@ -234,21 +220,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     try {
-      final success = await _repository.updateDisplayName(name: event.name);
-      if (success) {
-        emit(DisplayNameUpdatedState(event.name));
-        final user = await _repository.getCurrentUser();
-        _emitStateForUser(emit, user);
-      } else {
-        emit(const AuthErrorState('Failed to update display name.'));
-      }
+      await _repository.updateDisplayName(name: event.name);
+      emit(DisplayNameUpdatedState(event.name));
+      await _emitStateForCurrentUser(emit, reload: true);
     } catch (error, stackTrace) {
-      _emitFailure(
-        emit,
-        error,
-        stackTrace,
-        action: 'update display name',
-      );
+      _emitFailure(emit, error, stackTrace, action: 'update display name');
     }
   }
 
@@ -257,23 +233,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     try {
-      final success =
-          await _repository.updatePassword(password: event.password);
-      if (success) {
-        emit(const PasswordUpdatedState());
-        // Sign out after password change for security
-        add(const SignOutEvent());
-      } else {
-        emit(const AuthErrorState('Failed to update password.'));
-      }
-    } catch (error, stackTrace) {
-      _emitFailure(
-        emit,
-        error,
-        stackTrace,
-        action: 'update password',
+      await _repository.updatePassword(
+        currentPassword: event.currentPassword,
+        newPassword: event.newPassword,
       );
+      emit(const PasswordUpdatedState());
+      // Sign out after password change for security.
+      add(const SignOutEvent());
+    } catch (error, stackTrace) {
+      _emitFailure(emit, error, stackTrace, action: 'update password');
     }
+  }
+
+  Future<void> _subscribeToAuthStateChanges() async {
+    await _authStateSubscription?.cancel();
+    _authStateSubscription = _repository.authStateChanges.listen((user) {
+      add(_AuthStateChangedEvent(user));
+    });
   }
 
   @override
@@ -298,21 +274,44 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthenticatedState(user));
   }
 
+  Future<void> _emitStateForCurrentUser(
+    Emitter<AuthState> emit, {
+    required bool reload,
+  }) async {
+    final user =
+        reload
+            ? await _repository.reloadCurrentUser()
+            : await _repository.getCurrentUser();
+    _emitStateForUser(emit, user);
+  }
+
+  Future<void> _emitStateForCurrentUserSafely(
+    Emitter<AuthState> emit, {
+    required bool reload,
+  }) async {
+    try {
+      await _emitStateForCurrentUser(emit, reload: reload);
+    } catch (error, stackTrace) {
+      log(
+        '[AuthBloc] Failed to evaluate current user state',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
   void _emitFailure(
     Emitter<AuthState> emit,
     Object error,
     StackTrace stackTrace, {
     required String action,
   }) {
-    log(
-      '[AuthBloc] Failed to $action',
-      error: error,
-      stackTrace: stackTrace,
-    );
+    log('[AuthBloc] Failed to $action', error: error, stackTrace: stackTrace);
 
-    final message = error is AuthException
-        ? error.message
-        : 'Something went wrong. Please try again.';
+    final message =
+        error is AuthException
+            ? error.message
+            : 'Something went wrong. Please try again.';
     emit(AuthErrorState(message));
   }
 }

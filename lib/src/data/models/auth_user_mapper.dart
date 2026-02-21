@@ -1,5 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart' show User;
-import '../../domain/entities/auth_user.dart';
+import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
 
 /// Extension to map Firebase [User] to domain [AuthUser].
 extension FirebaseUserMapper on User {

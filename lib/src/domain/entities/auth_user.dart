@@ -28,6 +28,9 @@ class AuthUser {
   /// rather than email/password only.
   bool get isOAuthUser => providerIds.any((p) => p != 'password');
 
+  /// Compatibility alias for host apps that use a remote/user identifier name.
+  String get remoteId => id;
+
   AuthUser copyWith({
     String? id,
     String? email,
@@ -60,8 +63,13 @@ class AuthUser {
 
   @override
   int get hashCode => Object.hash(
-      id, email, displayName, photoURL, isEmailVerified,
-      Object.hashAll(providerIds));
+    id,
+    email,
+    displayName,
+    photoURL,
+    isEmailVerified,
+    Object.hashAll(providerIds),
+  );
 
   @override
   String toString() =>

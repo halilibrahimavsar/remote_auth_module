@@ -1,19 +1,18 @@
 import 'dart:developer';
 
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:google_sign_in/google_sign_in.dart';
-
-import '../core/exceptions/auth_exceptions.dart';
-import '../domain/entities/auth_user.dart';
-import '../data/models/auth_user_mapper.dart';
+import 'package:remote_auth_module/src/core/exceptions/auth_exceptions.dart';
+import 'package:remote_auth_module/src/data/models/auth_user_mapper.dart';
+import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
 
 /// Handles email/password and common Firebase Auth operations.
 class EmailAuthProvider {
-  final FirebaseAuth auth;
+  final fb.FirebaseAuth auth;
 
   EmailAuthProvider({required this.auth});
 
-  Future<AuthUser?> register({
+  Future<AuthUser> register({
     required String email,
     required String password,
   }) async {
@@ -22,13 +21,17 @@ class EmailAuthProvider {
         email: email,
         password: password,
       );
-      return credential.user?.toDomain();
-    } on FirebaseAuthException catch (e) {
+      final user = credential.user;
+      if (user == null) {
+        throw const GenericAuthException(cause: 'user-not-created');
+      }
+      return user.toDomain();
+    } on fb.FirebaseAuthException catch (e) {
       throw mapFirebaseAuthCode(e.code);
     }
   }
 
-  Future<AuthUser?> signIn({
+  Future<AuthUser> signIn({
     required String email,
     required String password,
   }) async {
@@ -37,8 +40,12 @@ class EmailAuthProvider {
         email: email,
         password: password,
       );
-      return credential.user?.toDomain();
-    } on FirebaseAuthException catch (e) {
+      final user = credential.user;
+      if (user == null) {
+        throw const GenericAuthException(cause: 'missing-authenticated-user');
+      }
+      return user.toDomain();
+    } on fb.FirebaseAuthException catch (e) {
       throw mapFirebaseAuthCode(e.code);
     }
   }
@@ -48,43 +55,56 @@ class EmailAuthProvider {
     if (user == null) throw const UserNotLoggedInException();
     try {
       await user.sendEmailVerification();
-    } on FirebaseAuthException catch (e) {
+    } on fb.FirebaseAuthException catch (e) {
       throw mapFirebaseAuthCode(e.code);
     }
   }
 
-  Future<bool> sendPasswordReset({required String email}) async {
+  Future<void> sendPasswordReset({required String email}) async {
     try {
       await auth.sendPasswordResetEmail(email: email);
-      return true;
-    } on FirebaseAuthException catch (e) {
+    } on fb.FirebaseAuthException catch (e) {
       throw PasswordResetException(e.message ?? e.code);
     }
   }
 
-  Future<bool> updateDisplayName(String name) async {
+  Future<void> updateDisplayName(String name) async {
     final user = auth.currentUser;
     if (user == null) throw const UserNotLoggedInException();
 
     try {
       await user.updateDisplayName(name);
       await user.reload();
-      return true;
-    } on FirebaseAuthException catch (e) {
+    } on fb.FirebaseAuthException catch (e) {
       throw mapFirebaseAuthCode(e.code);
     } catch (e) {
       throw GenericAuthException(cause: e);
     }
   }
 
-  Future<bool> updatePassword(String password) async {
+  Future<void> updatePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
     final user = auth.currentUser;
     if (user == null) throw const UserNotLoggedInException();
+    final email = user.email;
+    if (email == null || email.isEmpty) {
+      throw const PasswordChangeNotSupportedException();
+    }
 
     try {
-      await user.updatePassword(password);
-      return true;
-    } on FirebaseAuthException catch (e) {
+      // Re-authenticate user to ensure they are who they say they are
+      // This is critical for sensitive operations like changing password
+      final credential = fb.EmailAuthProvider.credential(
+        email: email,
+        password: currentPassword,
+      );
+
+      await user.reauthenticateWithCredential(credential);
+
+      await user.updatePassword(newPassword);
+    } on fb.FirebaseAuthException catch (e) {
       throw mapFirebaseAuthCode(e.code);
     } catch (e) {
       throw GenericAuthException(cause: e);
@@ -103,7 +123,7 @@ class EmailAuthProvider {
 /// Handles Google Sign-In operations.
 ///
 /// Uses the `google_sign_in` v7 singleton API.
-/// The [FirebaseAuth] instance is injectable for multi-app support.
+/// The FirebaseAuth instance is injectable for multi-app support.
 ///
 /// On Android, [serverClientId] (the Web Client ID from Google Cloud Console)
 /// is **required** by the underlying SDK.
@@ -115,7 +135,7 @@ class EmailAuthProvider {
 /// )
 /// ```
 class GoogleAuthService {
-  final FirebaseAuth auth;
+  final fb.FirebaseAuth auth;
   final GoogleSignIn _googleSignIn;
   final String? serverClientId;
   final String? clientId;
@@ -123,6 +143,9 @@ class GoogleAuthService {
   static Future<void>? _initializeFuture;
   static ({String? serverClientId, String? clientId})? _initConfig;
   static const List<String> _firebaseScopes = <String>['email'];
+
+  /// Prevent concurrent sign-in attempts which cause NotAllowedError on Web.
+  static bool _isOperationInProgress = false;
 
   GoogleAuthService({
     required this.auth,
@@ -160,10 +183,20 @@ class GoogleAuthService {
     }
   }
 
-  Future<AuthUser?> signIn() async {
+  Future<AuthUser> signIn() async {
+    if (_isOperationInProgress) {
+      log(
+        '[GoogleAuthService] Sign-in already in progress. Ignoring concurrent request.',
+      );
+      throw const GoogleSignInInterruptedException();
+    }
+
+    _isOperationInProgress = true;
     try {
+      // Web/Desktop: native google_sign_in is unsupported, use Firebase
+      // Auth's built-in GoogleAuthProvider with signInWithPopup instead.
       if (!_googleSignIn.supportsAuthenticate()) {
-        throw const GoogleSignInUnavailableException();
+        return await _signInWithFirebasePopup();
       }
 
       await _ensureInitialized();
@@ -187,13 +220,17 @@ class GoogleAuthService {
         accessToken = promptedAuthorization.accessToken;
       }
 
-      final credential = GoogleAuthProvider.credential(
+      final credential = fb.GoogleAuthProvider.credential(
         accessToken: accessToken,
         idToken: idToken,
       );
 
       final userCredential = await auth.signInWithCredential(credential);
-      return userCredential.user?.toDomain();
+      final user = userCredential.user;
+      if (user == null) {
+        throw const GenericAuthException(cause: 'missing-google-auth-user');
+      }
+      return user.toDomain();
     } on GoogleSignInException catch (e, stackTrace) {
       log(
         '[GoogleAuthService] GoogleSignInException: ${e.code} ${e.description}',
@@ -201,14 +238,38 @@ class GoogleAuthService {
         stackTrace: stackTrace,
       );
       throw _mapGoogleSignInError(e);
-    } on UnsupportedError catch (e, stackTrace) {
-      log(
-        '[GoogleAuthService] Unsupported sign-in flow on this platform',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      throw const GoogleSignInUnavailableException();
-    } on FirebaseAuthException catch (e) {
+    } on fb.FirebaseAuthException catch (e) {
+      throw mapFirebaseAuthCode(e.code);
+    } catch (e) {
+      throw GenericAuthException(cause: e);
+    } finally {
+      _isOperationInProgress = false;
+    }
+  }
+
+  /// Web/Desktop fallback: uses Firebase Auth's GoogleAuthProvider directly.
+  ///
+  /// On Web this triggers signInWithPopup; on Desktop it triggers
+  /// signInWithProvider. No google_sign_in plugin dependency needed.
+  Future<AuthUser> _signInWithFirebasePopup() async {
+    try {
+      final provider = fb.GoogleAuthProvider();
+      for (final scope in _firebaseScopes) {
+        provider.addScope(scope);
+      }
+
+      final userCredential = await auth.signInWithProvider(provider);
+      final user = userCredential.user;
+      if (user == null) {
+        throw const GenericAuthException(cause: 'missing-google-popup-user');
+      }
+      return user.toDomain();
+    } on fb.FirebaseAuthException catch (e) {
+      if (e.code == 'popup-closed-by-user' ||
+          e.code == 'cancelled-popup-request' ||
+          e.code == 'web-context-cancelled') {
+        throw const GoogleSignInCancelledException();
+      }
       throw mapFirebaseAuthCode(e.code);
     } catch (e) {
       throw GenericAuthException(cause: e);
@@ -220,6 +281,14 @@ class GoogleAuthService {
   /// This is non-critical — failures are silently swallowed.
   /// On Android, this requires [serverClientId] to be set.
   Future<void> signInSilently() async {
+    if (_isOperationInProgress) {
+      log(
+        '[GoogleAuthService] Operation already in progress. Skipping silent sign-in.',
+      );
+      return;
+    }
+
+    _isOperationInProgress = true;
     try {
       await _ensureInitialized();
 
@@ -227,11 +296,15 @@ class GoogleAuthService {
       // We must await the returned future to catch async errors.
       final future = _googleSignIn.attemptLightweightAuthentication();
       if (future != null) {
-        await future;
+        // Add a safety timeout to prevent indefinite hangs on Android
+        await future.timeout(const Duration(seconds: 10));
       }
-    } catch (_) {
+    } catch (e) {
+      log('[GoogleAuthService] Silent sign-in failed or timed out: $e');
       // Non-critical: don't crash on silent refresh failure.
-      // Common reasons: no previous sign-in, network issues, etc.
+      // Common reasons: no previous sign-in, network issues, timeout.
+    } finally {
+      _isOperationInProgress = false;
     }
   }
 

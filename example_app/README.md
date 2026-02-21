@@ -1,16 +1,42 @@
 # example_app
 
-A new Flutter project.
+Example integration for `remote_auth_module`.
 
-## Getting Started
+## Run Android / iOS
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Run Web
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+This example supports web, but Firebase web options must be configured.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Option 1 (recommended)
+Generate `firebase_options.dart` including web values:
+
+```bash
+flutterfire configure --project <your-project-id> --platforms=android,ios,web
+```
+
+Then run:
+
+```bash
+flutter run -d chrome
+```
+
+### Option 2 (no file edit, via dart-define)
+If your `firebase_options.dart` still has placeholder web values, you can run with:
+
+```bash
+flutter run -d chrome \
+  --dart-define=FIREBASE_WEB_API_KEY=... \
+  --dart-define=FIREBASE_WEB_APP_ID=... \
+  --dart-define=FIREBASE_WEB_MESSAGING_SENDER_ID=... \
+  --dart-define=FIREBASE_WEB_PROJECT_ID=... \
+  --dart-define=FIREBASE_WEB_AUTH_DOMAIN=... \
+  --dart-define=FIREBASE_WEB_STORAGE_BUCKET=...
+```
+
+`example_app/lib/main.dart` now includes a web bootstrap fallback that reads these values.

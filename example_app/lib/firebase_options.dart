@@ -27,10 +27,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.macOS:
         return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -44,12 +41,12 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'API_KEY',
-    appId: 'APP_ID',
-    messagingSenderId: 'SENDER_ID',
-    projectId: 'PROJECT_ID',
-    authDomain: 'PROJECT_ID.firebaseapp.com',
-    storageBucket: 'PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyD7vunaxZZCUXdhk1RqwYRs6MyNp7vp36I',
+    appId: '1:789348142189:web:292d42597fd84eaab00364',
+    messagingSenderId: '789348142189',
+    projectId: 'remote-auth-module',
+    authDomain: 'remote-auth-module.firebaseapp.com',
+    storageBucket: 'remote-auth-module.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -66,17 +63,29 @@ class DefaultFirebaseOptions {
     messagingSenderId: '789348142189',
     projectId: 'remote-auth-module',
     storageBucket: 'remote-auth-module.firebasestorage.app',
+    androidClientId: '789348142189-3geilgu8n4rhcpin94vd8fa0alh95ivi.apps.googleusercontent.com',
     iosClientId: '789348142189-ue8gep8df5eb6b8rm5mirqb0cfirivhk.apps.googleusercontent.com',
     iosBundleId: 'com.example.exampleApp',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'API_KEY',
-    appId: 'APP_ID',
-    messagingSenderId: 'SENDER_ID',
-    projectId: 'PROJECT_ID',
-    storageBucket: 'PROJECT_ID.appspot.com',
-    iosClientId: 'IOS_CLIENT_ID',
-    iosBundleId: 'IOS_BUNDLE_ID',
+    apiKey: 'AIzaSyC6jP98lwzPMBLwuKkr0SwPdlUBDYhuuOM',
+    appId: '1:789348142189:ios:928fc8c5620c7bd0b00364',
+    messagingSenderId: '789348142189',
+    projectId: 'remote-auth-module',
+    storageBucket: 'remote-auth-module.firebasestorage.app',
+    androidClientId: '789348142189-3geilgu8n4rhcpin94vd8fa0alh95ivi.apps.googleusercontent.com',
+    iosClientId: '789348142189-ue8gep8df5eb6b8rm5mirqb0cfirivhk.apps.googleusercontent.com',
+    iosBundleId: 'com.example.exampleApp',
   );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyD7vunaxZZCUXdhk1RqwYRs6MyNp7vp36I',
+    appId: '1:789348142189:web:e5f732a76d6ac9f8b00364',
+    messagingSenderId: '789348142189',
+    projectId: 'remote-auth-module',
+    authDomain: 'remote-auth-module.firebaseapp.com',
+    storageBucket: 'remote-auth-module.firebasestorage.app',
+  );
+
 }
