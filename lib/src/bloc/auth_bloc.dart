@@ -18,6 +18,17 @@ class _AuthStateChangedEvent extends AuthEvent {
   const _AuthStateChangedEvent(this.user);
 }
 
+class _PhoneCodeSentInternalEvent extends AuthEvent {
+  final String verificationId;
+  final int? resendToken;
+  const _PhoneCodeSentInternalEvent(this.verificationId, this.resendToken);
+}
+
+class _PhoneVerificationFailedInternalEvent extends AuthEvent {
+  final AuthException exception;
+  const _PhoneVerificationFailedInternalEvent(this.exception);
+}
+
 /// BLoC for managing authentication state.
 ///
 /// Requires an [AuthRepository] implementation (typically FirebaseAuthRepository).
@@ -55,6 +66,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<SignInWithEmailEvent>(_onSignInWithEmail);
     on<RegisterWithEmailEvent>(_onRegisterWithEmail);
     on<SignInWithGoogleEvent>(_onSignInWithGoogle);
+    on<SignInAnonymouslyEvent>(_onSignInAnonymously);
+    on<VerifyPhoneNumberEvent>(_onVerifyPhoneNumber);
+    on<SignInWithSmsCodeEvent>(_onSignInWithSmsCode);
     on<SignOutEvent>(_onSignOut);
     on<SendEmailVerificationEvent>(_onSendEmailVerification);
     on<RefreshCurrentUserEvent>(_onRefreshCurrentUser);
@@ -62,6 +76,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<UpdateDisplayNameEvent>(_onUpdateDisplayName);
     on<UpdatePasswordEvent>(_onUpdatePassword);
     on<_AuthStateChangedEvent>(_onAuthStateChanged);
+    on<_PhoneCodeSentInternalEvent>(_onPhoneCodeSent);
+    on<_PhoneVerificationFailedInternalEvent>(_onPhoneVerificationFailed);
+
+    _subscribeToAuthStateChanges();
   }
 
   Future<void> _onInitialize(
@@ -74,24 +92,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (!shouldRememberSession) {
         await _repository.signOut();
         emit(const UnauthenticatedState());
-        await _subscribeToAuthStateChanges();
         return;
       }
 
-      final user = await _repository.initializeSession().timeout(
-        const Duration(seconds: 15),
-      );
+      final user = await _repository.initializeSession();
       _emitStateForUser(emit, user);
-
-      await _subscribeToAuthStateChanges();
     } catch (error, stackTrace) {
-      log(
-        '[AuthBloc] Initialize failed or timed out',
-        error: error,
-        stackTrace: stackTrace,
-      );
+      log('[AuthBloc] Initialize failed', error: error, stackTrace: stackTrace);
       emit(const UnauthenticatedState());
-      await _subscribeToAuthStateChanges();
     }
   }
 
@@ -107,6 +115,25 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       return;
     }
     _emitStateForUser(emit, event.user);
+  }
+
+  void _onPhoneCodeSent(
+    _PhoneCodeSentInternalEvent event,
+    Emitter<AuthState> emit,
+  ) {
+    emit(
+      PhoneCodeSentState(
+        verificationId: event.verificationId,
+        resendToken: event.resendToken,
+      ),
+    );
+  }
+
+  void _onPhoneVerificationFailed(
+    _PhoneVerificationFailedInternalEvent event,
+    Emitter<AuthState> emit,
+  ) {
+    emit(AuthErrorState(event.exception.message));
   }
 
   Future<void> _onSignInWithEmail(
@@ -164,6 +191,58 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
+  Future<void> _onSignInAnonymously(
+    SignInAnonymouslyEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoadingState());
+    try {
+      final user = await _repository.signInAnonymously();
+      _emitStateForUser(emit, user);
+    } catch (error, stackTrace) {
+      _emitFailure(emit, error, stackTrace, action: 'sign in anonymously');
+    }
+  }
+
+  Future<void> _onVerifyPhoneNumber(
+    VerifyPhoneNumberEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoadingState());
+    try {
+      await _repository.verifyPhoneNumber(
+        phoneNumber: event.phoneNumber,
+        onCodeSent: (verificationId, resendToken) {
+          add(_PhoneCodeSentInternalEvent(verificationId, resendToken));
+        },
+        onVerificationFailed: (exception) {
+          add(_PhoneVerificationFailedInternalEvent(exception));
+        },
+        onVerificationCompleted: (user) {
+          add(_AuthStateChangedEvent(user));
+        },
+      );
+    } catch (error, stackTrace) {
+      _emitFailure(emit, error, stackTrace, action: 'verify phone number');
+    }
+  }
+
+  Future<void> _onSignInWithSmsCode(
+    SignInWithSmsCodeEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoadingState());
+    try {
+      final user = await _repository.signInWithSmsCode(
+        verificationId: event.verificationId,
+        smsCode: event.smsCode,
+      );
+      _emitStateForUser(emit, user);
+    } catch (error, stackTrace) {
+      _emitFailure(emit, error, stackTrace, action: 'sign in with SMS code');
+    }
+  }
+
   Future<void> _onSignOut(SignOutEvent event, Emitter<AuthState> emit) async {
     emit(const AuthLoadingState());
     try {
@@ -178,9 +257,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     SendEmailVerificationEvent event,
     Emitter<AuthState> emit,
   ) async {
+    // Note: We don't emit AuthLoadingState here by default to avoid
+    // replacing a specialized page state (like EmailVerificationRequired),
+    // but we can if the UI expects it. The pages use internal _isResendPending instead.
     try {
+      log('[AuthBloc] Requesting email verification send...');
       await _repository.sendEmailVerification();
+      log('[AuthBloc] Email verification sent successfully.');
       emit(const EmailVerificationSentState());
+
+      // Give listeners a small amount of time to process the Sent state
+      // before potentially navigating away/rebuilding via _emitStateForUser.
+      await Future<void>.delayed(const Duration(milliseconds: 100));
       await _emitStateForCurrentUserSafely(emit, reload: true);
     } catch (error, stackTrace) {
       _emitFailure(emit, error, stackTrace, action: 'send email verification');
@@ -207,9 +295,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoadingState());
     try {
+      log('[AuthBloc] Requesting password reset email for: ${event.email}');
       await _repository.sendPasswordResetEmail(email: event.email);
+      log('[AuthBloc] Password reset email sent successfully.');
       emit(const PasswordResetSentState());
-      await _emitStateForCurrentUser(emit, reload: false);
+      // We don't reload user here because they are usually unauthenticated.
+      // Just emit current state to refresh UI.
+      await _emitStateForCurrentUserSafely(emit, reload: false);
     } catch (error, stackTrace) {
       _emitFailure(emit, error, stackTrace, action: 'send password reset');
     }
@@ -245,8 +337,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  Future<void> _subscribeToAuthStateChanges() async {
-    await _authStateSubscription?.cancel();
+  void _subscribeToAuthStateChanges() {
+    _authStateSubscription?.cancel();
     _authStateSubscription = _repository.authStateChanges.listen((user) {
       add(_AuthStateChangedEvent(user));
     });

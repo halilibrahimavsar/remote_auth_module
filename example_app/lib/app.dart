@@ -188,6 +188,9 @@ class _ExampleAppState extends State<ExampleApp> {
       case 0:
         return RemoteAuthFlow(
           loginTitle: 'Auth Flow Template',
+          showGoogleSignIn: true,
+          showPhoneSignIn: true,
+          showAnonymousSignIn: true,
           authenticatedBuilder:
               (context, user) => HomePage(
                 user: user,

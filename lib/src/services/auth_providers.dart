@@ -52,18 +52,35 @@ class EmailAuthProvider {
 
   Future<void> sendEmailVerification() async {
     final user = auth.currentUser;
-    if (user == null) throw const UserNotLoggedInException();
+    if (user == null) {
+      log('[EmailAuthProvider] Cannot send verification: No user logged in.');
+      throw const UserNotLoggedInException();
+    }
     try {
+      log('[EmailAuthProvider] Triggering user.sendEmailVerification()...');
       await user.sendEmailVerification();
+      log('[EmailAuthProvider] user.sendEmailVerification() call finished.');
     } on fb.FirebaseAuthException catch (e) {
+      log(
+        '[EmailAuthProvider] FirebaseAuthException during verification: ${e.code}',
+        error: e,
+      );
       throw mapFirebaseAuthCode(e.code);
     }
   }
 
   Future<void> sendPasswordReset({required String email}) async {
     try {
+      log(
+        '[EmailAuthProvider] Triggering auth.sendPasswordResetEmail(email: $email)...',
+      );
       await auth.sendPasswordResetEmail(email: email);
+      log('[EmailAuthProvider] auth.sendPasswordResetEmail() call finished.');
     } on fb.FirebaseAuthException catch (e) {
+      log(
+        '[EmailAuthProvider] FirebaseAuthException during password reset: ${e.code}',
+        error: e,
+      );
       throw PasswordResetException(e.message ?? e.code);
     }
   }

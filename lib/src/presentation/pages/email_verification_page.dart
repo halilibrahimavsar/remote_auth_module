@@ -50,6 +50,9 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is EmailVerificationRequiredState) {
+          setState(() {
+            _isResendPending = false;
+          });
           if (_user?.id != state.user.id) {
             setState(() => _user = state.user);
           }

@@ -34,14 +34,18 @@ class RemoteAuthFlow extends StatelessWidget {
   final Widget? logo;
   final String loginTitle;
   final bool showGoogleSignIn;
+  final bool showPhoneSignIn;
+  final bool showAnonymousSignIn;
 
   const RemoteAuthFlow({
-    super.key,
     required this.authenticatedBuilder,
     this.authBloc,
     this.logo,
     this.loginTitle = 'Welcome Back',
     this.showGoogleSignIn = true,
+    this.showPhoneSignIn = true,
+    this.showAnonymousSignIn = true,
+    super.key,
   });
 
   @override
@@ -54,6 +58,8 @@ class RemoteAuthFlow extends StatelessWidget {
           logo: logo,
           loginTitle: loginTitle,
           showGoogleSignIn: showGoogleSignIn,
+          showPhoneSignIn: showPhoneSignIn,
+          showAnonymousSignIn: showAnonymousSignIn,
         ),
       );
     }
@@ -63,6 +69,8 @@ class RemoteAuthFlow extends StatelessWidget {
       logo: logo,
       loginTitle: loginTitle,
       showGoogleSignIn: showGoogleSignIn,
+      showPhoneSignIn: showPhoneSignIn,
+      showAnonymousSignIn: showAnonymousSignIn,
     );
   }
 }
@@ -73,12 +81,16 @@ class _AuthFlowGate extends StatelessWidget {
   final Widget? logo;
   final String loginTitle;
   final bool showGoogleSignIn;
+  final bool showPhoneSignIn;
+  final bool showAnonymousSignIn;
 
   const _AuthFlowGate({
     required this.authenticatedBuilder,
     this.logo,
     required this.loginTitle,
     required this.showGoogleSignIn,
+    required this.showPhoneSignIn,
+    required this.showAnonymousSignIn,
   });
 
   @override
@@ -109,6 +121,8 @@ class _AuthFlowGate extends StatelessWidget {
           logo: logo,
           title: loginTitle,
           showGoogleSignIn: showGoogleSignIn,
+          showPhoneSignIn: showPhoneSignIn,
+          showAnonymousSignIn: showAnonymousSignIn,
           onRegisterTap: () {
             Navigator.of(context).push(
               MaterialPageRoute<void>(

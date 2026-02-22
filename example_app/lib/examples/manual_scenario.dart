@@ -30,6 +30,9 @@ class ManualIntegrationScenario extends StatelessWidget {
         // Default to Login Page if Unauthenticated
         return LoginPage(
           title: 'Custom Integration',
+          showGoogleSignIn: true,
+          showPhoneSignIn: true,
+          showAnonymousSignIn: true,
           onRegisterTap:
               () => Navigator.of(context).push(
                 MaterialPageRoute<void>(

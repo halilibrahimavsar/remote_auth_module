@@ -11,13 +11,12 @@ import 'package:firebase_auth/firebase_auth.dart' show User;
 ///
 /// Supports multi-Firebase-app configurations through injected instances.
 class FirestoreUserService {
-  final FirebaseFirestore firestore;
-  final String usersCollection;
-
   FirestoreUserService({
     required this.firestore,
     this.usersCollection = 'users',
   });
+  final FirebaseFirestore firestore;
+  final String usersCollection;
 
   /// Creates or updates a user document in Firestore.
   ///

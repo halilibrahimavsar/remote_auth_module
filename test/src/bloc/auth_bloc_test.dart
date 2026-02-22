@@ -253,5 +253,80 @@ void main() {
         verify(() => mockAuthRepository.signOut()).called(1);
       },
     );
+
+    blocTest<AuthBloc, AuthState>(
+      'signInAnonymously emits authenticated on success',
+      build: () {
+        when(
+          () => mockAuthRepository.signInAnonymously(),
+        ).thenAnswer((_) async => verifiedUser);
+
+        return AuthBloc(
+          repository: mockAuthRepository,
+          rememberMeService: mockRememberMeService,
+        );
+      },
+      act: (bloc) => bloc.add(const SignInAnonymouslyEvent()),
+      expect:
+          () => const [AuthLoadingState(), AuthenticatedState(verifiedUser)],
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      'verifyPhoneNumber triggers internal event on code sent',
+      build: () {
+        when(
+          () => mockAuthRepository.verifyPhoneNumber(
+            phoneNumber: any(named: 'phoneNumber'),
+            onCodeSent: any(named: 'onCodeSent'),
+            onVerificationFailed: any(named: 'onVerificationFailed'),
+            onVerificationCompleted: any(named: 'onVerificationCompleted'),
+          ),
+        ).thenAnswer((invocation) async {
+          final onCodeSent =
+              invocation.namedArguments[#onCodeSent]
+                  as void Function(String, int?);
+          onCodeSent('v-id', 123);
+        });
+
+        return AuthBloc(
+          repository: mockAuthRepository,
+          rememberMeService: mockRememberMeService,
+        );
+      },
+      act:
+          (bloc) =>
+              bloc.add(const VerifyPhoneNumberEvent(phoneNumber: '+123456789')),
+      expect:
+          () => [
+            const AuthLoadingState(),
+            const PhoneCodeSentState(verificationId: 'v-id', resendToken: 123),
+          ],
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      'signInWithSmsCode emits authenticated on success',
+      build: () {
+        when(
+          () => mockAuthRepository.signInWithSmsCode(
+            verificationId: any(named: 'verificationId'),
+            smsCode: any(named: 'smsCode'),
+          ),
+        ).thenAnswer((_) async => verifiedUser);
+
+        return AuthBloc(
+          repository: mockAuthRepository,
+          rememberMeService: mockRememberMeService,
+        );
+      },
+      act:
+          (bloc) => bloc.add(
+            const SignInWithSmsCodeEvent(
+              verificationId: 'v-id',
+              smsCode: '123456',
+            ),
+          ),
+      expect:
+          () => const [AuthLoadingState(), AuthenticatedState(verifiedUser)],
+    );
   });
 }

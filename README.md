@@ -1,15 +1,22 @@
 # Remote Auth Module
 
-A premium, multi-platform Firebase authentication module for Flutter designed with **Clean Architecture** and **BLoC**. It provides a complete, production-ready auth system with stunning visual aesthetics (Glassmorphism, Gradients) and flexible integration patterns.
+A premium, multi-platform Firebase authentication module for Flutter designed with **Clean Architecture** and **BLoC**. It provides a complete, production-ready auth system with stunning visual aesthetics and flexible integration patterns.
 
-## ✨ Highlights
+## ✨ Features
 
-- **Multi-Platform Ready**: Fully configured for Web, Android, iOS, macOS, Windows, and Linux.
-- **Ready-to-Use Template**: Drop the `RemoteAuthFlow` widget into your app for a zero-boilerplate auth experience.
-- **Architectural Flexibility**: Clean separate layers (Domain/Data/Presentation). Works seamlessly with **DI/Injectable**, **GetIt**, and custom routing.
-- **Premium Aesthetics**: High-end UI system with animations, glassmorphism, and responsive design.
-- **Strict Verification Gate**: Automatic email verification handling for improved security.
-- **Firestore Sync**: Automatic user profile management in Firestore with pre-configured secure rules.
+- **Multi-Platform Support**: Ready for Web, Android, iOS, macOS, Windows, and Linux.
+- **Multiple Auth Methods**:
+  - **Email/Password**: Including registration and password reset.
+  - **Google Sign-In**: Seamless integration across platforms.
+  - **Anonymous Sign-In**: Let users explore your app before committing.
+  - **Phone Authentication**: SMS-based verification with a smooth UI flow.
+- **Ready-to-Use Template**: The `RemoteAuthFlow` widget handles the entire lifecycle with zero boilerplate.
+- **Architectural Excellence**: Clean separation of Domain, Data, and Presentation layers.
+- **Security First**:
+  - Automatic email verification gate.
+  - Firestore user profile synchronization.
+  - Pre-configured secure Firestore rules.
+- **Premium UI**: Modern design with glassmorphism, gradients, and micro-animations.
 
 ---
 
@@ -17,142 +24,133 @@ A premium, multi-platform Firebase authentication module for Flutter designed wi
 
 ### 1. Installation
 
-Add the module as a local dependency in your `pubspec.yaml`:
+Add the module and its core dependencies to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
   remote_auth_module:
-    path: YOUR_PATH_TO_MODULE
+    path: ../remote_auth_module # Adjust path as needed
   flutter_bloc: ^9.1.0
   firebase_core: ^4.3.0
   firebase_auth: ^6.1.3
   cloud_firestore: ^6.1.2
-  google_sign_in: ^7.0.0
 ```
 
-### 2. Firebase Configuration
+### 2. Firebase Setup
 
-The module is designed to be multi-platform. Ensure you have registered your apps in the Firebase Console and generated the configuration.
+The module requires a configured Firebase project. Use the [FlutterFire CLI](https://firebase.flutter.dev/docs/cli/) for the easiest setup:
 
-For the easiest setup, use the FlutterFire CLI:
 ```bash
 flutterfire config \
   --project=your-project-id \
-  --platforms=android,ios,macos,web,windows,linux \
-  --yes
+  --platforms=android,ios,macos,web,windows,linux
 ```
 
-### 3. Firestore Security Rules
+#### Platform Specifics:
+- **Android**: To use Google Sign-In, you must provide your `serverClientId` (from Google Cloud Console) to the repository.
+- **Phone Auth**: Ensure you have enabled Phone Provider in the Firebase Console. For Android, add your SHA-1 and SHA-256 fingerprints.
 
-Ensure your Firestore is protected. Use the provided rules in `example_app/firestore.rules`:
-- **Default Deny**: Blocks all unauthorized access.
-- **Ownership Based**: Users can only read/write their own profiles.
-- **Data Validation**: Enforces structure for `uid`, `createdAt`, and `updatedAt`.
+### 3. Firestore Permissions
+
+If you enable `createUserCollection`, ensure your Firestore rules allow users to manage their own profiles. Use the blueprint provided in `example_app/firestore.rules`.
 
 ---
 
 ## 🛠 Usage Patterns
 
-### Pattern A: Ready-to-Use (Recommended)
+### Pattern A: The "Easy" Way (RemoteAuthFlow)
 
-Use the `RemoteAuthFlow` template to handle the entire lifecycle (Login, Register, Forgot Password, Verification, Loading) with a single widget. It integrates perfectly with your existing DI.
+The `RemoteAuthFlow` widget manages everything: loading states, login, registration, phone verification, and email gates.
 
 ```dart
-// Example with GetIt/Injectable
-return RemoteAuthFlow(
-  authBloc: getIt<AuthBloc>(), // Optional: Pass your DI instance
-  logo: Image.asset('assets/logo.png'),
-  loginTitle: 'Welcome to MyApp',
+RemoteAuthFlow(
+  authBloc: myAuthBloc, // Optional if provided via context
+  logo: MyLogoWidget(),
+  loginTitle: 'Welcome Back',
+  showGoogleSignIn: true,
+  showPhoneSignIn: true,
+  showAnonymousSignIn: true,
   authenticatedBuilder: (context, user) {
-    // Return your main app screen here
-    return MainScreen(user: user);
+    return MainAppScreen(user: user);
   },
-);
+)
 ```
 
-### Pattern B: Manual Integration (Custom UI/Logic)
+### Pattern B: Manual Integration (Custom Layouts)
 
-If you need a highly custom UI while using our BLoC logic:
+For full control, wrap your UI in a `BlocBuilder`.
 
 ```dart
-return BlocBuilder<AuthBloc, AuthState>(
+BlocBuilder<AuthBloc, AuthState>(
   builder: (context, state) {
-    if (state is AuthenticatedState) return HomeScreen(user: state.user);
-    if (state is UnauthenticatedState) return MyCustomLoginPage();
-    // ... handle other states
+    if (state is AuthenticatedState) {
+      return HomeScreen(user: state.user);
+    }
+    
+    // Use individual module pages or your own
+    return LoginPage(
+      showPhoneSignIn: true,
+      showAnonymousSignIn: true,
+      onRegisterTap: () => /* navigate to RegisterPage */,
+    );
   },
+)
+```
+
+---
+
+## 🏗 Component Configuration
+
+### AuthRepository
+The `FirebaseAuthRepository` is the core implementation. Configure it during dependency injection:
+
+```dart
+final authRepository = FirebaseAuthRepository(
+  auth: FirebaseAuth.instance,
+  firestore: FirebaseFirestore.instance,
+  createUserCollection: true, // Syncs user data to 'users' collection
+  serverClientId: 'your-google-client-id.apps.googleusercontent.com',
 );
 ```
 
----
-
-## 🏗 Architecture Support
-
-### Dependency Injection (DI)
-The module is constructor-injection friendly. You can easily register it in your `injectable` configuration or `GetIt`.
+### AuthBloc
+The BLoC handles all logic and state transitions.
 
 ```dart
-// Dependency Registration Example
-@module
-abstract class AuthModule {
-  @lazySingleton
-  AuthRepository get authRepository => FirebaseAuthRepository(
-    serverClientId: '...', // Required for Google Sign-In on Android
-    createUserCollection: true,
-  );
-
-  @injectable
-  AuthBloc get authBloc => AuthBloc(repository: getIt<AuthRepository>());
-}
+final authBloc = AuthBloc(repository: authRepository);
+authBloc.add(const InitializeAuthEvent());
 ```
 
-### Routing
-The prebuilt `RemoteAuthFlow` uses an internal navigator for auth sub-pages (Login -> Register). This keeps your main app router (like `go_router`) clean. Once authenticated, the `authenticatedBuilder` is triggered, allowing you to transition to your main application routes.
-
 ---
 
-## 🔒 Security & Data
+## 📁 Project Structure
 
-### User Document Sync
-If initialized with `createUserCollection: true`, the module automatically maintains a `users` collection in Firestore:
-- **ID**: User's Firebase UID
-- **Fields**: `email`, `displayName`, `photoURL`, `createdAt`, `updatedAt`, `lastLoginAt`.
-
-### Security Rules Validation
-The provided `firestore.rules` have been validated against:
-1. Unauthorized profile reading/writing.
-2. UID hijacking (ensures `request.auth.uid == userId`).
-3. Immutable field protection (e.g., preventing modification of `createdAt`).
-
----
-
-## 📂 Project Structure
-
-- `lib/src/domain`: Entities and Repository interfaces (Pure Dart).
-- `lib/src/data`: Repository implementations and DTOs.
-- `lib/src/bloc`: Auth state management.
+- `lib/src/domain`: Entities (`AuthUser`) and Repository interfaces.
+- `lib/src/data`: Firebase implementation, DTOs, and Mappers.
+- `lib/src/bloc`: Auth state management (`AuthBloc`, `AuthEvent`, `AuthState`).
 - `lib/src/presentation`:
-    - `pages/`: Full screen pages (Login, Register, etc.).
-    - `templates/`: High-level flow components (RemoteAuthFlow).
-    - `widgets/`: Atomic design components.
+    - `pages/`: Login, Register, ForgotPassword, EmailVerification.
+    - `templates/`: `RemoteAuthFlow` (the main gate).
+    - `widgets/`: Atomic UI components like `AuthActionButton` and `PhoneAuthDialog`.
+- `lib/src/services`: Low-level services for Phone, Google, and Firestore.
 
 ---
 
 ## 🧪 Testing
 
-The module comes with a comprehensive test suite:
-- **Unit Tests**: Coverage for Repositories and BLoCs (`test/`).
-- **Security Tests**: Node.js based tests for Firestore rules (`example_app/security_rules_test_firestore/`).
+The module is verified with a robust test suite:
 
-Run Flutter tests:
 ```bash
+# Run unit tests for BLoCs and Repositories
 flutter test
 ```
+
+For Firestore security rules, see the integration tests in `example_app/security_rules_test_firestore/`.
 
 ---
 
 ## 💡 Troubleshooting
 
-- **Google Sign-In on Web**: Ensure your `authDomain` is correctly configured in `FirebaseOptions`.
-- **Google Sign-In on Android**: You **must** provide the `serverClientId` (from the Google Cloud Console) to `FirebaseAuthRepository`.
-- **Email not arriving**: Verify your Firebase Email templates are active and the domain is verified in the Firebase Console.
+- **Phone Auth reCAPTCHA**: On Web, ensure your domain is whitelisted. On Android/iOS, the module uses "invisible" verification where possible.
+- **Google Sign-In mismatch**: Check that the `serverClientId` matches the Web Client ID in your Google Cloud project (not the Android one).
+- **Infinite Loading**: Ensure you've called `InitializeAuthEvent` to restore the user session on startup.

@@ -8,6 +8,7 @@ import 'package:remote_auth_module/src/presentation/widgets/auth_glass_card.dart
 import 'package:remote_auth_module/src/presentation/widgets/auth_gradient_scaffold.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_input_field.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_status_banner.dart';
+import 'package:remote_auth_module/src/presentation/widgets/phone_auth_dialog.dart';
 import 'package:remote_auth_module/src/services/remember_me_service.dart';
 
 class LoginPage extends StatefulWidget {
@@ -18,6 +19,8 @@ class LoginPage extends StatefulWidget {
   final Widget? logo;
   final String title;
   final bool showGoogleSignIn;
+  final bool showPhoneSignIn;
+  final bool showAnonymousSignIn;
 
   const LoginPage({
     super.key,
@@ -28,6 +31,8 @@ class LoginPage extends StatefulWidget {
     this.logo,
     this.title = 'Welcome Back',
     this.showGoogleSignIn = true,
+    this.showPhoneSignIn = true,
+    this.showAnonymousSignIn = true,
   });
 
   @override
@@ -216,6 +221,59 @@ class _LoginPageState extends State<LoginPage> {
                     icon: Icons.g_mobiledata,
                   ),
                 ],
+                if (widget.showPhoneSignIn || widget.showAnonymousSignIn) ...[
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Divider(
+                          color: colorScheme.onPrimary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text(
+                          'OR',
+                          style: TextStyle(
+                            color: colorScheme.onPrimary.withValues(alpha: 0.5),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(
+                          color: colorScheme.onPrimary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      if (widget.showPhoneSignIn)
+                        Expanded(
+                          child: AuthActionButton(
+                            label: 'Phone',
+                            style: AuthActionButtonStyle.subtle,
+                            onPressed: _handlePhoneSignIn,
+                            icon: Icons.phone_android,
+                          ),
+                        ),
+                      if (widget.showPhoneSignIn && widget.showAnonymousSignIn)
+                        const SizedBox(width: 12),
+                      if (widget.showAnonymousSignIn)
+                        Expanded(
+                          child: AuthActionButton(
+                            label: 'Guest',
+                            style: AuthActionButtonStyle.subtle,
+                            onPressed: _handleAnonymousSignIn,
+                            icon: Icons.person_outline,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
                 if (widget.onRegisterTap != null) ...[
                   const SizedBox(height: 16),
                   TextButton(
@@ -269,6 +327,26 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     context.read<AuthBloc>().add(const SignInWithGoogleEvent());
+  }
+
+  Future<void> _handleAnonymousSignIn() async {
+    await _rememberMeService.save(value: _rememberMe);
+    if (!mounted) {
+      return;
+    }
+
+    context.read<AuthBloc>().add(const SignInAnonymouslyEvent());
+  }
+
+  void _handlePhoneSignIn() {
+    showDialog<void>(
+      context: context,
+      builder:
+          (_) => BlocProvider.value(
+            value: context.read<AuthBloc>(),
+            child: const PhoneAuthDialog(),
+          ),
+    );
   }
 
   void _showError(String message) {

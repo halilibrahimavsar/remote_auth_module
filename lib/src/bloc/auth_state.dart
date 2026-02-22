@@ -95,6 +95,23 @@ class EmailVerificationSentState extends AuthState {
   int get hashCode => runtimeType.hashCode;
 }
 
+/// Phone code was successfully sent, waiting for user input.
+class PhoneCodeSentState extends AuthState {
+  final String verificationId;
+  final int? resendToken;
+  const PhoneCodeSentState({required this.verificationId, this.resendToken});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PhoneCodeSentState &&
+          verificationId == other.verificationId &&
+          resendToken == other.resendToken;
+
+  @override
+  int get hashCode => Object.hash(runtimeType, verificationId, resendToken);
+}
+
 /// User registered but needs to verify email before proceeding.
 class EmailVerificationRequiredState extends AuthState {
   final AuthUser user;

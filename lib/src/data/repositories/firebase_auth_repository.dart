@@ -4,11 +4,13 @@ import 'package:flutter/foundation.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:remote_auth_module/src/core/exceptions/auth_exceptions.dart';
 import 'package:remote_auth_module/src/data/models/auth_user_mapper.dart';
 import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
 import 'package:remote_auth_module/src/domain/repositories/auth_repository.dart';
 import 'package:remote_auth_module/src/services/auth_providers.dart';
 import 'package:remote_auth_module/src/services/firestore_user_service.dart';
+import 'package:remote_auth_module/src/services/phone_auth_service.dart';
 
 /// Default Firebase implementation of [AuthRepository].
 ///
@@ -20,6 +22,7 @@ class FirebaseAuthRepository implements AuthRepository {
   final fb.FirebaseAuth _auth;
   final EmailAuthProvider _emailProvider;
   final GoogleAuthService _googleService;
+  final PhoneAuthService _phoneService;
   final FirestoreUserService? _firestoreService;
   final bool _createUserCollection;
 
@@ -29,11 +32,13 @@ class FirebaseAuthRepository implements AuthRepository {
     required bool createUserCollection,
     required EmailAuthProvider emailProvider,
     required GoogleAuthService googleService,
+    required PhoneAuthService phoneService,
     FirestoreUserService? firestoreService,
   }) : _auth = auth,
        _createUserCollection = createUserCollection,
        _emailProvider = emailProvider,
        _googleService = googleService,
+       _phoneService = phoneService,
        _firestoreService = firestoreService;
 
   /// Creates a [FirebaseAuthRepository].
@@ -63,6 +68,7 @@ class FirebaseAuthRepository implements AuthRepository {
         serverClientId: serverClientId,
         clientId: clientId,
       ),
+      phoneService: PhoneAuthService(auth: effectiveAuth),
       firestoreService:
           createUserCollection && firestore != null
               ? FirestoreUserService(
@@ -155,6 +161,57 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<AuthUser> signInWithGoogle() async {
     final authUser = await _googleService.signIn();
+
+    if (_auth.currentUser != null) {
+      await _syncUserDocument(_auth.currentUser!);
+    }
+    return authUser;
+  }
+
+  @override
+  Future<AuthUser> signInAnonymously() async {
+    try {
+      final credential = await _auth.signInAnonymously();
+      final user = credential.user;
+      if (user == null) {
+        throw const GenericAuthException(cause: 'anonymous-sign-in-failed');
+      }
+      await _syncUserDocument(user);
+      return user.toDomain();
+    } on fb.FirebaseAuthException catch (e) {
+      throw mapFirebaseAuthCode(e.code);
+    } catch (e) {
+      throw GenericAuthException(cause: e);
+    }
+  }
+
+  @override
+  Future<void> verifyPhoneNumber({
+    required String phoneNumber,
+    required void Function(String verificationId, int? resendToken) onCodeSent,
+    required void Function(AuthException exception) onVerificationFailed,
+    required void Function(AuthUser user) onVerificationCompleted,
+  }) async {
+    return _phoneService.verifyPhoneNumber(
+      phoneNumber: phoneNumber,
+      onCodeSent: onCodeSent,
+      onVerificationFailed: onVerificationFailed,
+      onVerificationCompleted: (user) async {
+        await _syncUserDocument(_auth.currentUser!);
+        onVerificationCompleted(user);
+      },
+    );
+  }
+
+  @override
+  Future<AuthUser> signInWithSmsCode({
+    required String verificationId,
+    required String smsCode,
+  }) async {
+    final authUser = await _phoneService.signInWithSmsCode(
+      verificationId: verificationId,
+      smsCode: smsCode,
+    );
 
     if (_auth.currentUser != null) {
       await _syncUserDocument(_auth.currentUser!);

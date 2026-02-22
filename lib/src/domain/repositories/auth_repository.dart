@@ -1,3 +1,4 @@
+import 'package:remote_auth_module/src/core/exceptions/auth_exceptions.dart';
 import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
 
 /// Abstract interface for authentication operations.
@@ -28,6 +29,27 @@ abstract class AuthRepository {
 
   /// Signs in with Google.
   Future<AuthUser> signInWithGoogle();
+
+  /// Signs in anonymously.
+  Future<AuthUser> signInAnonymously();
+
+  /// Verifies a phone number for SMS authentication.
+  ///
+  /// Calls [onCodeSent] when the code is successfully sent.
+  /// Calls [onVerificationFailed] if an error occurs.
+  /// Calls [onVerificationCompleted] if auto-retrieval succeeds (Android).
+  Future<void> verifyPhoneNumber({
+    required String phoneNumber,
+    required void Function(String verificationId, int? resendToken) onCodeSent,
+    required void Function(AuthException exception) onVerificationFailed,
+    required void Function(AuthUser user) onVerificationCompleted,
+  });
+
+  /// Signs in with the SMS code sent via [verifyPhoneNumber].
+  Future<AuthUser> signInWithSmsCode({
+    required String verificationId,
+    required String smsCode,
+  });
 
   /// Signs out the current user.
   Future<void> signOut();

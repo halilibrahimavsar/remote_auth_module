@@ -30,6 +30,27 @@ class SignInWithGoogleEvent extends AuthEvent {
   const SignInWithGoogleEvent();
 }
 
+/// Sign in anonymously.
+class SignInAnonymouslyEvent extends AuthEvent {
+  const SignInAnonymouslyEvent();
+}
+
+/// Starts the phone number verification process.
+class VerifyPhoneNumberEvent extends AuthEvent {
+  final String phoneNumber;
+  const VerifyPhoneNumberEvent({required this.phoneNumber});
+}
+
+/// Signs in with an SMS code.
+class SignInWithSmsCodeEvent extends AuthEvent {
+  final String verificationId;
+  final String smsCode;
+  const SignInWithSmsCodeEvent({
+    required this.verificationId,
+    required this.smsCode,
+  });
+}
+
 /// Sign out the current user.
 class SignOutEvent extends AuthEvent {
   const SignOutEvent();

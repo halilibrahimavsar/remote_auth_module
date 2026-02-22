@@ -9,6 +9,7 @@ class AuthInputField extends StatelessWidget {
   final String? errorText;
   final TextInputType? keyboardType;
   final ValueChanged<String>? onChanged;
+  final String? hintText;
 
   const AuthInputField({
     super.key,
@@ -20,6 +21,7 @@ class AuthInputField extends StatelessWidget {
     this.errorText,
     this.keyboardType,
     this.onChanged,
+    this.hintText,
   });
 
   @override
@@ -47,6 +49,10 @@ class AuthInputField extends StatelessWidget {
           labelText: label,
           labelStyle: TextStyle(
             color: colorScheme.onPrimary.withValues(alpha: 0.72),
+          ),
+          hintText: hintText,
+          hintStyle: TextStyle(
+            color: colorScheme.onPrimary.withValues(alpha: 0.4),
           ),
           errorText: errorText,
           errorStyle: TextStyle(color: colorScheme.error),

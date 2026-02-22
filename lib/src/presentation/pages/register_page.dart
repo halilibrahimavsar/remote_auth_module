@@ -69,6 +69,9 @@ class _RegisterPageState extends State<RegisterPage> {
         }
 
         if (state is EmailVerificationRequiredState) {
+          setState(() {
+            _isResendPending = false;
+          });
           if (!_isVerificationView) {
             setState(() => _isVerificationView = true);
           }
