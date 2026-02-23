@@ -58,9 +58,7 @@ class HomePage extends StatelessWidget {
                 child:
                     user.photoURL == null
                         ? Text(
-                          (user.displayName ?? user.email)
-                              .substring(0, 1)
-                              .toUpperCase(),
+                          _getInitial(user.displayName ?? user.email),
                           style: theme.textTheme.displaySmall,
                         )
                         : null,
@@ -83,6 +81,12 @@ class HomePage extends StatelessWidget {
                 label: Text('UID: ${user.id}'),
                 backgroundColor: theme.colorScheme.surfaceContainerHighest,
               ),
+              const SizedBox(height: 16),
+              if (user.isAnonymous)
+                const Chip(
+                  label: Text('Guest Account'),
+                  avatar: Icon(Icons.people_alt, size: 16),
+                ),
               const SizedBox(height: 32),
               FilledButton.icon(
                 onPressed: () {
@@ -98,5 +102,20 @@ class HomePage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Safely extracts the first letter of a string.
+  /// Handles null, empty, or whitespace strings gracefully.
+  String _getInitial(String? text) {
+    if (text == null) return '?';
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return '?';
+    try {
+      // Using characters to correctly handle emojis/unicode if present
+      return trimmed.characters.first.toUpperCase();
+    } catch (_) {
+      // Fallback for any other string processing errors
+      return '?';
+    }
   }
 }

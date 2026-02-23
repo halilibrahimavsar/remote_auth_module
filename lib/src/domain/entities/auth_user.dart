@@ -11,6 +11,7 @@ class AuthUser {
   final String? displayName;
   final String? photoURL;
   final bool isEmailVerified;
+  final bool isAnonymous;
 
   /// The authentication provider IDs for this user (e.g., 'password', 'google.com').
   final List<String> providerIds;
@@ -21,6 +22,7 @@ class AuthUser {
     this.displayName,
     this.photoURL,
     required this.isEmailVerified,
+    this.isAnonymous = false,
     this.providerIds = const [],
   });
 
@@ -37,6 +39,7 @@ class AuthUser {
     String? displayName,
     String? photoURL,
     bool? isEmailVerified,
+    bool? isAnonymous,
     List<String>? providerIds,
   }) {
     return AuthUser(
@@ -45,6 +48,7 @@ class AuthUser {
       displayName: displayName ?? this.displayName,
       photoURL: photoURL ?? this.photoURL,
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,
+      isAnonymous: isAnonymous ?? this.isAnonymous,
       providerIds: providerIds ?? this.providerIds,
     );
   }
@@ -59,6 +63,7 @@ class AuthUser {
           displayName == other.displayName &&
           photoURL == other.photoURL &&
           isEmailVerified == other.isEmailVerified &&
+          isAnonymous == other.isAnonymous &&
           listEquals(providerIds, other.providerIds);
 
   @override
@@ -68,11 +73,12 @@ class AuthUser {
     displayName,
     photoURL,
     isEmailVerified,
+    isAnonymous,
     Object.hashAll(providerIds),
   );
 
   @override
   String toString() =>
       'AuthUser(id: $id, email: $email, displayName: $displayName, '
-      'verified: $isEmailVerified, providers: $providerIds)';
+      'verified: $isEmailVerified, anonymous: $isAnonymous, providers: $providerIds)';
 }

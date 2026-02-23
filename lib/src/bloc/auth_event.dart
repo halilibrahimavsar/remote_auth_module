@@ -63,7 +63,8 @@ class SendEmailVerificationEvent extends AuthEvent {
 
 /// Refreshes current user state from remote auth provider.
 class RefreshCurrentUserEvent extends AuthEvent {
-  const RefreshCurrentUserEvent();
+  final bool isSilent;
+  const RefreshCurrentUserEvent({this.isSilent = false});
 }
 
 /// Send password reset email.

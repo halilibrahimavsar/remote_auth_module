@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:remote_auth_module/src/bloc/auth_bloc.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_action_button.dart';
+import 'package:remote_auth_module/src/presentation/widgets/auth_glass_card.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_input_field.dart';
 
 /// A dialog to handle phone number authentication.
@@ -46,6 +47,8 @@ class _PhoneAuthDialogState extends State<PhoneAuthDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is PhoneCodeSentState) {
@@ -55,78 +58,115 @@ class _PhoneAuthDialogState extends State<PhoneAuthDialog> {
           });
         } else if (state is AuthErrorState) {
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(state.message)));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: colorScheme.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         } else if (state is AuthenticatedState) {
           Navigator.of(context).pop();
         }
       },
-      child: Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.8),
-                blurRadius: 10,
-                spreadRadius: 2,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Material(
+            color: Colors.transparent,
+            child: AuthGlassCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ShaderMask(
+                    shaderCallback:
+                        (bounds) => const LinearGradient(
+                          colors: [Colors.white, Colors.white70],
+                        ).createShader(bounds),
+                    child: Text(
+                      _verificationId == null ? 'Phone Login' : 'Verify Code',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _verificationId == null
+                        ? 'Secure sign in with your number'
+                        : 'Enter the 6-digit code sent to\n${_phoneController.text}',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (_verificationId == null) ...[
+                    AuthInputField(
+                      controller: _phoneController,
+                      label: 'Phone Number',
+                      icon: Icons.phone_android_rounded,
+                      keyboardType: TextInputType.phone,
+                      hintText: '+1 123 456 7890',
+                    ),
+                    const SizedBox(height: 24),
+                    AuthActionButton(
+                      label: 'Send Verification Code',
+                      onPressed: _isLoading ? null : _onVerifyPhone,
+                      isBusy: _isLoading,
+                      icon: Icons.arrow_forward_rounded,
+                    ),
+                  ] else ...[
+                    AuthInputField(
+                      controller: _codeController,
+                      label: '6-Digit Code',
+                      icon: Icons.lock_clock_outlined,
+                      keyboardType: TextInputType.number,
+                      hintText: '000000',
+                    ),
+                    const SizedBox(height: 24),
+                    AuthActionButton(
+                      label: 'Confirm & Sign In',
+                      onPressed: _isLoading ? null : _onSignInWithCode,
+                      isBusy: _isLoading,
+                      icon: Icons.check_circle_outline_rounded,
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed:
+                          _isLoading
+                              ? null
+                              : () => setState(() => _verificationId = null),
+                      child: Text(
+                        'Change Phone Number',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed:
+                        _isLoading ? null : () => Navigator.of(context).pop(),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _verificationId == null ? 'Phone Login' : 'Enter Code',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (_verificationId == null) ...[
-                AuthInputField(
-                  controller: _phoneController,
-                  label: 'Phone Number',
-                  icon: Icons.phone,
-                  keyboardType: TextInputType.phone,
-                  hintText: '+1 123 456 7890',
-                ),
-                const SizedBox(height: 24),
-                AuthActionButton(
-                  label: 'Send Code',
-                  onPressed: _isLoading ? null : _onVerifyPhone,
-                  isBusy: _isLoading,
-                ),
-              ] else ...[
-                Text(
-                  'A code was sent to ${_phoneController.text}',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                AuthInputField(
-                  controller: _codeController,
-                  label: 'Verification Code',
-                  icon: Icons.sms_outlined,
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 24),
-                AuthActionButton(
-                  label: 'Verify & Login',
-                  onPressed: _isLoading ? null : _onSignInWithCode,
-                  isBusy: _isLoading,
-                ),
-                TextButton(
-                  onPressed: () => setState(() => _verificationId = null),
-                  child: const Text('Change Number'),
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),

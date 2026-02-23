@@ -75,7 +75,7 @@ class RemoteAuthFlow extends StatelessWidget {
   }
 }
 
-class _AuthFlowGate extends StatelessWidget {
+class _AuthFlowGate extends StatefulWidget {
   final Widget Function(BuildContext context, AuthUser user)
   authenticatedBuilder;
   final Widget? logo;
@@ -94,35 +94,53 @@ class _AuthFlowGate extends StatelessWidget {
   });
 
   @override
+  State<_AuthFlowGate> createState() => _AuthFlowGateState();
+}
+
+class _AuthFlowGateState extends State<_AuthFlowGate> {
+  AuthState? _lastContentState;
+
+  @override
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       buildWhen: (previous, current) {
-        // Only rebuild if the runtime type changes (e.g. Unauthenticated to Authenticated)
+        // Only rebuild if the runtime type changes
         return previous.runtimeType != current.runtimeType;
       },
       builder: (context, state) {
+        // Update last content state if it's not a transient state
+        if (state is! AuthInitialState && state is! AuthLoadingState) {
+          _lastContentState = state;
+        }
+
         if (state is AuthInitialState) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        if (state is AuthenticatedState) {
-          return authenticatedBuilder(context, state.user);
+        // Handle loading state by showing the last known content instead of LoginPage
+        final effectiveState =
+            (state is AuthLoadingState && _lastContentState != null)
+                ? _lastContentState!
+                : state;
+
+        if (effectiveState is AuthenticatedState) {
+          return widget.authenticatedBuilder(context, effectiveState.user);
         }
 
-        if (state is EmailVerificationRequiredState) {
-          return EmailVerificationPage(user: state.user);
+        if (effectiveState is EmailVerificationRequiredState) {
+          return EmailVerificationPage(user: effectiveState.user);
         }
 
-        // Return LoginPage as default for UnauthenticatedState & AuthErrorState
-        // LoginPage handles loading state visualization via AuthLoadingState internally.
+        // Return LoginPage as default for UnauthenticatedState, AuthErrorState
+        // or AuthLoadingState without prior content.
         return LoginPage(
-          logo: logo,
-          title: loginTitle,
-          showGoogleSignIn: showGoogleSignIn,
-          showPhoneSignIn: showPhoneSignIn,
-          showAnonymousSignIn: showAnonymousSignIn,
+          logo: widget.logo,
+          title: widget.loginTitle,
+          showGoogleSignIn: widget.showGoogleSignIn,
+          showPhoneSignIn: widget.showPhoneSignIn,
+          showAnonymousSignIn: widget.showAnonymousSignIn,
           onRegisterTap: () {
             Navigator.of(context).push(
               MaterialPageRoute<void>(

@@ -39,6 +39,7 @@ void main() {
       when(() => initialUser.displayName).thenReturn('User');
       when(() => initialUser.photoURL).thenReturn(null);
       when(() => initialUser.emailVerified).thenReturn(false);
+      when(() => initialUser.isAnonymous).thenReturn(false);
       when(() => initialUser.providerData).thenReturn([info]);
 
       when(() => refreshedUser.uid).thenReturn('uid-123');
@@ -46,6 +47,7 @@ void main() {
       when(() => refreshedUser.displayName).thenReturn('User');
       when(() => refreshedUser.photoURL).thenReturn(null);
       when(() => refreshedUser.emailVerified).thenReturn(true);
+      when(() => refreshedUser.isAnonymous).thenReturn(false);
       when(() => refreshedUser.providerData).thenReturn([info]);
 
       var currentUserReadCount = 0;

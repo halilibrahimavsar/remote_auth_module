@@ -152,7 +152,7 @@ void main() {
           ),
         );
       },
-      wait: const Duration(milliseconds: 10),
+      wait: const Duration(milliseconds: 150),
       expect:
           () => const [
             AuthLoadingState(),

@@ -10,6 +10,7 @@ extension FirebaseUserMapper on User {
       displayName: displayName,
       photoURL: photoURL,
       isEmailVerified: emailVerified,
+      isAnonymous: isAnonymous,
       providerIds: providerData.map((p) => p.providerId).toList(),
     );
   }

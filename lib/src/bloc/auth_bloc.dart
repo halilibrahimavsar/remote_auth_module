@@ -280,8 +280,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     RefreshCurrentUserEvent event,
     Emitter<AuthState> emit,
   ) async {
-    emit(const AuthLoadingState());
+    if (!event.isSilent) {
+      emit(const AuthLoadingState());
+    }
     try {
+      log('[AuthBloc] Refreshing current user (silent: ${event.isSilent})');
       await _emitStateForCurrentUser(emit, reload: true);
     } catch (error, stackTrace) {
       _emitFailure(emit, error, stackTrace, action: 'refresh current user');
@@ -356,9 +359,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       return;
     }
 
-    // OAuth users (Google, Apple, etc.) don't need email verification
-    // since their email is already verified by the provider.
-    if (!user.isEmailVerified && !user.isOAuthUser) {
+    // OAuth users (Google, Apple, etc.) and Anonymous users don't need
+    // email verification.
+    if (!user.isEmailVerified && !user.isOAuthUser && !user.isAnonymous) {
       emit(EmailVerificationRequiredState(user));
       return;
     }

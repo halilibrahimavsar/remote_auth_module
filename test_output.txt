@@ -1,0 +1,40 @@
+00:00 +0: loading /home/garuda/Masaüstü/remote_auth_module/test/src/bloc/auth_bloc_test.dart                                                                                                           00:01 +0: loading /home/garuda/Masaüstü/remote_auth_module/test/src/bloc/auth_bloc_test.dart                                                                                                           00:01 +0: loading /home/garuda/Masaüstü/remote_auth_module/test/src/data/repositories/firebase_auth_repository_test.dart                                                                               00:01 +0: loading /home/garuda/Masaüstü/remote_auth_module/test/src/services/firestore_user_service_test.dart                                                                                          00:01 +0: loading /home/garuda/Masaüstü/remote_auth_module/test/src/services/remember_me_service_test.dart                                                                                             00:01 +0: loading /home/garuda/Masaüstü/remote_auth_module/test/src/presentation/auth_pages_test.dart                                                                                                  00:01 +0: /home/garuda/Masaüstü/remote_auth_module/test/src/presentation/auth_pages_test.dart: (setUpAll)                                                                                              00:01 +0: /home/garuda/Masaüstü/remote_auth_module/test/src/presentation/auth_pages_test.dart: Auth pages RegisterPage calls onVerificationRequired before onAuthenticated                             00:02 +0: /home/garuda/Masaüstü/remote_auth_module/test/src/presentation/auth_pages_test.dart: Auth pages RegisterPage calls onVerificationRequired before onAuthenticated                             00:02 +0: /home/garuda/Masaüstü/remote_auth_module/test/src/presentation/auth_pages_test.dart: Auth pages RegisterPage calls onVerificationRequired before onAuthenticated                             
+══╡ EXCEPTION CAUGHT BY RENDERING LIBRARY ╞═════════════════════════════════════════════════════════
+The following assertion was thrown during layout:
+A RenderFlex overflowed by 47 pixels on the right.
+
+The relevant error-causing widget was:
+  Row
+  Row:file:///home/garuda/Masa%C3%BCst%C3%BC/remote_auth_module/lib/src/presentation/widgets/auth_action_button.dart:80:21
+
+The overflowing RenderFlex has an orientation of Axis.horizontal.
+The edge of the RenderFlex that is overflowing has been marked in the rendering with a yellow and
+black striped pattern. This is usually caused by the contents being too big for the RenderFlex.
+Consider applying a flex factor (e.g. using an Expanded widget) to force the children of the
+RenderFlex to fit within the available space instead of being sized to their natural size.
+This is considered an error condition because it indicates that there is content that cannot be
+seen. If the content is legitimately bigger than the available space, consider clipping it with a
+ClipRect widget before putting it in the flex, or using a scrollable container rather than a Flex,
+like a ListView.
+The specific RenderFlex in question is: RenderFlex#c4756 relayoutBoundary=up32 OVERFLOWING:
+  creator: Row ← Align ← Padding ← IconTheme ← Builder ← Listener ← RawGestureDetector ←
+    GestureDetector ← Semantics ← DefaultSelectionStyle ← Builder ← MouseRegion ← ⋯
+  parentData: offset=Offset(0.0, 0.0) (can use size)
+  constraints: BoxConstraints(0.0<=w<=382.0, 0.0<=h<=Infinity)
+  size: Size(382.0, 23.0)
+  direction: horizontal
+  mainAxisAlignment: center
+  mainAxisSize: max
+  crossAxisAlignment: center
+  textDirection: ltr
+  verticalDirection: down
+  spacing: 0.0
+◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +0 -1: /home/garuda/Masaüstü/remote_auth_module/test/src/presentation/auth_pages_test.dart: Auth pages RegisterPage calls onVerificationRequired before onAuthenticated [E]                      
+  Test failed. See exception logs above.
+  The test description was: RegisterPage calls onVerificationRequired before onAuthenticated
+  
+
+To run this test again: /home/garuda/fluuter_sdk/flutter/bin/cache/dart-sdk/bin/dart test /home/garuda/Masaüstü/remote_auth_module/test/src/presentation/auth_pages_test.dart -p vm --plain-name 'Auth pages RegisterPage calls onVerificationRequired before onAuthenticated'
+00:02 +0 -1: /home/garuda/Masaüstü/remote_auth_module/test/src/presentation/auth_pages_test.dart: (tearDownAll)                                                                                        00:02 +0 -1: Some tests failed.                                                                                                                                                                        

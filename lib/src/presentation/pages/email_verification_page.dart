@@ -30,16 +30,28 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
   bool _isResendPending = false;
   int _cooldownSeconds = 0;
   Timer? _timer;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _user = widget.user;
+
+    // Auto-refresh timer: check for verification status every 5 seconds.
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted &&
+          context.read<AuthBloc>().state is EmailVerificationRequiredState) {
+        context.read<AuthBloc>().add(
+          const RefreshCurrentUserEvent(isSilent: true),
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _refreshTimer?.cancel();
     super.dispose();
   }
 
@@ -146,6 +158,14 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                 AuthStatusBanner(
                   type: AuthStatusBannerType.info,
                   message: 'Open your inbox, verify, then tap refresh.',
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '💡 Tip: Check your spam folder if you don\'t see the email.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onPrimary.withValues(alpha: 0.6),
+                  ),
                 ),
                 const SizedBox(height: 18),
                 AuthActionButton(

@@ -75,6 +75,12 @@ class _RegisterPageState extends State<RegisterPage> {
           if (!_isVerificationView) {
             setState(() => _isVerificationView = true);
           }
+          // Fix: If we are in the verification view, and the page was pushed (manual or via RemoteAuthFlow),
+          // we should pop ourselves so that the underlying Flow displays the EmailVerificationPage
+          // without duplicates.
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
           widget.onVerificationRequired?.call(state.user);
           return;
         }
@@ -246,6 +252,14 @@ class _RegisterPageState extends State<RegisterPage> {
           type: AuthStatusBannerType.info,
           message: 'After verifying, tap refresh to continue.',
         ),
+        const SizedBox(height: 8),
+        Text(
+          '💡 Tip: Check your spam folder if you don\'t see the email.',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: colorScheme.onPrimary.withValues(alpha: 0.6),
+          ),
+        ),
         const SizedBox(height: 18),
         AuthActionButton(
           label: _resendButtonLabel,
@@ -262,7 +276,7 @@ class _RegisterPageState extends State<RegisterPage> {
               state is AuthLoadingState
                   ? null
                   : () => context.read<AuthBloc>().add(
-                    const RefreshCurrentUserEvent(),
+                    const RefreshCurrentUserEvent(isSilent: true),
                   ),
           icon: Icons.refresh,
         ),
