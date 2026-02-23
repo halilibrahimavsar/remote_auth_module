@@ -12,16 +12,6 @@ import 'package:remote_auth_module/src/presentation/widgets/phone_auth_dialog.da
 import 'package:remote_auth_module/src/services/remember_me_service.dart';
 
 class LoginPage extends StatefulWidget {
-  final VoidCallback? onRegisterTap;
-  final VoidCallback? onForgotPasswordTap;
-  final void Function(AuthUser user)? onAuthenticated;
-  final void Function(AuthUser user)? onVerificationRequired;
-  final Widget? logo;
-  final String title;
-  final bool showGoogleSignIn;
-  final bool showPhoneSignIn;
-  final bool showAnonymousSignIn;
-
   const LoginPage({
     super.key,
     this.onRegisterTap,
@@ -34,6 +24,15 @@ class LoginPage extends StatefulWidget {
     this.showPhoneSignIn = true,
     this.showAnonymousSignIn = true,
   });
+  final VoidCallback? onRegisterTap;
+  final VoidCallback? onForgotPasswordTap;
+  final void Function(AuthUser user)? onAuthenticated;
+  final void Function(AuthUser user)? onVerificationRequired;
+  final Widget? logo;
+  final String title;
+  final bool showGoogleSignIn;
+  final bool showPhoneSignIn;
+  final bool showAnonymousSignIn;
 
   @override
   State<LoginPage> createState() => _LoginPageState();

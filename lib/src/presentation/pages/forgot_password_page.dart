@@ -8,9 +8,8 @@ import 'package:remote_auth_module/src/presentation/widgets/auth_input_field.dar
 import 'package:remote_auth_module/src/presentation/widgets/auth_status_banner.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
-  final VoidCallback? onResetSent;
-
   const ForgotPasswordPage({super.key, this.onResetSent});
+  final VoidCallback? onResetSent;
 
   @override
   State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();

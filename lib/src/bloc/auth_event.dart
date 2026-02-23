@@ -13,16 +13,16 @@ class InitializeAuthEvent extends AuthEvent {
 
 /// Sign in with email and password.
 class SignInWithEmailEvent extends AuthEvent {
+  const SignInWithEmailEvent({required this.email, required this.password});
   final String email;
   final String password;
-  const SignInWithEmailEvent({required this.email, required this.password});
 }
 
 /// Register a new account with email and password.
 class RegisterWithEmailEvent extends AuthEvent {
+  const RegisterWithEmailEvent({required this.email, required this.password});
   final String email;
   final String password;
-  const RegisterWithEmailEvent({required this.email, required this.password});
 }
 
 /// Sign in with Google.
@@ -37,18 +37,18 @@ class SignInAnonymouslyEvent extends AuthEvent {
 
 /// Starts the phone number verification process.
 class VerifyPhoneNumberEvent extends AuthEvent {
-  final String phoneNumber;
   const VerifyPhoneNumberEvent({required this.phoneNumber});
+  final String phoneNumber;
 }
 
 /// Signs in with an SMS code.
 class SignInWithSmsCodeEvent extends AuthEvent {
-  final String verificationId;
-  final String smsCode;
   const SignInWithSmsCodeEvent({
     required this.verificationId,
     required this.smsCode,
   });
+  final String verificationId;
+  final String smsCode;
 }
 
 /// Sign out the current user.
@@ -63,28 +63,28 @@ class SendEmailVerificationEvent extends AuthEvent {
 
 /// Refreshes current user state from remote auth provider.
 class RefreshCurrentUserEvent extends AuthEvent {
-  final bool isSilent;
   const RefreshCurrentUserEvent({this.isSilent = false});
+  final bool isSilent;
 }
 
 /// Send password reset email.
 class SendPasswordResetEvent extends AuthEvent {
-  final String email;
   const SendPasswordResetEvent({required this.email});
+  final String email;
 }
 
 /// Update the user's display name.
 class UpdateDisplayNameEvent extends AuthEvent {
-  final String name;
   const UpdateDisplayNameEvent({required this.name});
+  final String name;
 }
 
 /// Update the user's password.
 class UpdatePasswordEvent extends AuthEvent {
-  final String currentPassword;
-  final String newPassword;
   const UpdatePasswordEvent({
     required this.currentPassword,
     required this.newPassword,
   });
+  final String currentPassword;
+  final String newPassword;
 }

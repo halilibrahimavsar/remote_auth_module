@@ -10,16 +10,15 @@ import 'package:remote_auth_module/src/presentation/widgets/auth_gradient_scaffo
 import 'package:remote_auth_module/src/presentation/widgets/auth_status_banner.dart';
 
 class EmailVerificationPage extends StatefulWidget {
-  final AuthUser? user;
-  final void Function(AuthUser user)? onAuthenticated;
-  final VoidCallback? onSignedOut;
-
   const EmailVerificationPage({
     super.key,
     this.user,
     this.onAuthenticated,
     this.onSignedOut,
   });
+  final AuthUser? user;
+  final void Function(AuthUser user)? onAuthenticated;
+  final VoidCallback? onSignedOut;
 
   @override
   State<EmailVerificationPage> createState() => _EmailVerificationPageState();
@@ -155,13 +154,13 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                AuthStatusBanner(
+                const AuthStatusBanner(
                   type: AuthStatusBannerType.info,
                   message: 'Open your inbox, verify, then tap refresh.',
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '💡 Tip: Check your spam folder if you don\'t see the email.',
+                  "💡 Tip: Check your spam folder if you don't see the email.",
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colorScheme.onPrimary.withValues(alpha: 0.6),

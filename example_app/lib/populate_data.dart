@@ -31,18 +31,16 @@ void main() async {
     },
   };
 
-  print('Populating Firestore...');
+  debugPrint('Populating Firestore...');
 
   for (final entry in placeholderData.entries) {
     try {
       await firestore.collection('users').doc(entry.key).set(entry.value);
-      print('Added user: ${entry.key}');
+      debugPrint('Added user: ${entry.key}');
     } catch (e) {
-      print('Failed to add ${entry.key}: $e');
+      debugPrint('Failed to add ${entry.key}: $e');
     }
   }
 
-  print('Data population complete!');
-  // Exit cleanly
-  // ignore: avoid_print
+  debugPrint('Data population complete!');
 }

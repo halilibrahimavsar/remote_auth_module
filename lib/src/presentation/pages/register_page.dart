@@ -1,3 +1,5 @@
+// ignore_for_file: lines_longer_than_80_chars
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -11,11 +13,6 @@ import 'package:remote_auth_module/src/presentation/widgets/auth_input_field.dar
 import 'package:remote_auth_module/src/presentation/widgets/auth_status_banner.dart';
 
 class RegisterPage extends StatefulWidget {
-  final VoidCallback? onLoginTap;
-  final void Function(AuthUser user)? onAuthenticated;
-  final void Function(AuthUser user)? onVerificationRequired;
-  final String title;
-
   const RegisterPage({
     super.key,
     this.onLoginTap,
@@ -23,6 +20,10 @@ class RegisterPage extends StatefulWidget {
     this.onVerificationRequired,
     this.title = 'Create Account',
   });
+  final VoidCallback? onLoginTap;
+  final void Function(AuthUser user)? onAuthenticated;
+  final void Function(AuthUser user)? onVerificationRequired;
+  final String title;
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -248,13 +249,13 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
         const SizedBox(height: 22),
-        AuthStatusBanner(
+        const AuthStatusBanner(
           type: AuthStatusBannerType.info,
           message: 'After verifying, tap refresh to continue.',
         ),
         const SizedBox(height: 8),
         Text(
-          '💡 Tip: Check your spam folder if you don\'t see the email.',
+          "💡 Tip: Check your spam folder if you don't see the email.",
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: colorScheme.onPrimary.withValues(alpha: 0.6),

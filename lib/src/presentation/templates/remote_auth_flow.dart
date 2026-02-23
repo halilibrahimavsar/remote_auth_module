@@ -1,3 +1,5 @@
+// ignore_for_file: lines_longer_than_80_chars
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:remote_auth_module/src/bloc/auth_bloc.dart';
@@ -28,15 +30,6 @@ import 'package:remote_auth_module/src/presentation/pages/register_page.dart';
 /// )
 /// ```
 class RemoteAuthFlow extends StatelessWidget {
-  final AuthBloc? authBloc;
-  final Widget Function(BuildContext context, AuthUser user)
-  authenticatedBuilder;
-  final Widget? logo;
-  final String loginTitle;
-  final bool showGoogleSignIn;
-  final bool showPhoneSignIn;
-  final bool showAnonymousSignIn;
-
   const RemoteAuthFlow({
     required this.authenticatedBuilder,
     this.authBloc,
@@ -47,6 +40,14 @@ class RemoteAuthFlow extends StatelessWidget {
     this.showAnonymousSignIn = true,
     super.key,
   });
+  final AuthBloc? authBloc;
+  final Widget Function(BuildContext context, AuthUser user)
+  authenticatedBuilder;
+  final Widget? logo;
+  final String loginTitle;
+  final bool showGoogleSignIn;
+  final bool showPhoneSignIn;
+  final bool showAnonymousSignIn;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +77,14 @@ class RemoteAuthFlow extends StatelessWidget {
 }
 
 class _AuthFlowGate extends StatefulWidget {
+  const _AuthFlowGate({
+    required this.authenticatedBuilder,
+    required this.loginTitle,
+    required this.showGoogleSignIn,
+    required this.showPhoneSignIn,
+    required this.showAnonymousSignIn,
+    this.logo,
+  });
   final Widget Function(BuildContext context, AuthUser user)
   authenticatedBuilder;
   final Widget? logo;
@@ -83,15 +92,6 @@ class _AuthFlowGate extends StatefulWidget {
   final bool showGoogleSignIn;
   final bool showPhoneSignIn;
   final bool showAnonymousSignIn;
-
-  const _AuthFlowGate({
-    required this.authenticatedBuilder,
-    this.logo,
-    required this.loginTitle,
-    required this.showGoogleSignIn,
-    required this.showPhoneSignIn,
-    required this.showAnonymousSignIn,
-  });
 
   @override
   State<_AuthFlowGate> createState() => _AuthFlowGateState();

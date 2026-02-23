@@ -1,7 +1,10 @@
+// ignore_for_file: lines_longer_than_80_chars
 /// Base class for all authentication exceptions.
+library;
+
 sealed class AuthException implements Exception {
-  final String message;
   const AuthException(this.message);
+  final String message;
 
   @override
   String toString() => message;
@@ -72,9 +75,9 @@ class PasswordResetException extends AuthException {
 }
 
 class GenericAuthException extends AuthException {
-  final Object? cause;
   const GenericAuthException({this.cause})
     : super('An unexpected error occurred.');
+  final Object? cause;
 
   // Removed toString override to prevent leaking internal error details to UI.
   // Use 'cause' only for internal logging.

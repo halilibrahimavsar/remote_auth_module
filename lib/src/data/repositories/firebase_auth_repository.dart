@@ -1,9 +1,10 @@
-import 'dart:developer';
+// ignore_for_file: lines_longer_than_80_chars
 
-import 'package:flutter/foundation.dart';
+import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:flutter/foundation.dart';
 import 'package:remote_auth_module/src/core/exceptions/auth_exceptions.dart';
 import 'package:remote_auth_module/src/data/models/auth_user_mapper.dart';
 import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
@@ -19,28 +20,6 @@ import 'package:remote_auth_module/src/services/phone_auth_service.dart';
 /// - Optional Firestore user collection management
 /// - Email/Password and Google Sign-In
 class FirebaseAuthRepository implements AuthRepository {
-  final fb.FirebaseAuth _auth;
-  final EmailAuthProvider _emailProvider;
-  final GoogleAuthService _googleService;
-  final PhoneAuthService _phoneService;
-  final FirestoreUserService? _firestoreService;
-  final bool _createUserCollection;
-
-  /// Internal constructor — use the public factory instead.
-  FirebaseAuthRepository._({
-    required fb.FirebaseAuth auth,
-    required bool createUserCollection,
-    required EmailAuthProvider emailProvider,
-    required GoogleAuthService googleService,
-    required PhoneAuthService phoneService,
-    FirestoreUserService? firestoreService,
-  }) : _auth = auth,
-       _createUserCollection = createUserCollection,
-       _emailProvider = emailProvider,
-       _googleService = googleService,
-       _phoneService = phoneService,
-       _firestoreService = firestoreService;
-
   /// Creates a [FirebaseAuthRepository].
   ///
   /// - [auth]: Optional custom FirebaseAuth instance (multi-app support).
@@ -78,6 +57,27 @@ class FirebaseAuthRepository implements AuthRepository {
               : null,
     );
   }
+
+  /// Internal constructor — use the public factory instead.
+  FirebaseAuthRepository._({
+    required fb.FirebaseAuth auth,
+    required bool createUserCollection,
+    required EmailAuthProvider emailProvider,
+    required GoogleAuthService googleService,
+    required PhoneAuthService phoneService,
+    FirestoreUserService? firestoreService,
+  }) : _auth = auth,
+       _createUserCollection = createUserCollection,
+       _emailProvider = emailProvider,
+       _googleService = googleService,
+       _phoneService = phoneService,
+       _firestoreService = firestoreService;
+  final fb.FirebaseAuth _auth;
+  final EmailAuthProvider _emailProvider;
+  final GoogleAuthService _googleService;
+  final PhoneAuthService _phoneService;
+  final FirestoreUserService? _firestoreService;
+  final bool _createUserCollection;
 
   @override
   Stream<AuthUser?> get authStateChanges {

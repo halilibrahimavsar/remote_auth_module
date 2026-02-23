@@ -1,3 +1,5 @@
+// ignore_for_file: lines_longer_than_80_chars
+
 import 'package:flutter/foundation.dart';
 
 /// Immutable representation of an authenticated user.
@@ -6,6 +8,15 @@ import 'package:flutter/foundation.dart';
 /// It wraps the essential user information without leaking Firebase types.
 @immutable
 class AuthUser {
+  const AuthUser({
+    required this.id,
+    required this.email,
+    required this.isEmailVerified,
+    this.displayName,
+    this.photoURL,
+    this.isAnonymous = false,
+    this.providerIds = const [],
+  });
   final String id;
   final String email;
   final String? displayName;
@@ -15,16 +26,6 @@ class AuthUser {
 
   /// The authentication provider IDs for this user (e.g., 'password', 'google.com').
   final List<String> providerIds;
-
-  const AuthUser({
-    required this.id,
-    required this.email,
-    this.displayName,
-    this.photoURL,
-    required this.isEmailVerified,
-    this.isAnonymous = false,
-    this.providerIds = const [],
-  });
 
   /// Whether the user signed in via an OAuth provider (e.g., Google, Apple)
   /// rather than email/password only.

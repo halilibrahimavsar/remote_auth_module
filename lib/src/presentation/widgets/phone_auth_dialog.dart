@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:remote_auth_module/src/bloc/auth_bloc.dart';
+import 'package:remote_auth_module/src/domain/models/country_model.dart';
+import 'package:remote_auth_module/src/presentation/utils/phone_input_formatter.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_action_button.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_glass_card.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_input_field.dart';
+import 'package:remote_auth_module/src/presentation/widgets/country_selector_bottom_sheet.dart';
 
 /// A dialog to handle phone number authentication.
 class PhoneAuthDialog extends StatefulWidget {
@@ -19,6 +22,7 @@ class _PhoneAuthDialogState extends State<PhoneAuthDialog> {
 
   String? _verificationId;
   bool _isLoading = false;
+  Country _selectedCountry = Country.all.first;
 
   @override
   void dispose() {
@@ -31,8 +35,14 @@ class _PhoneAuthDialogState extends State<PhoneAuthDialog> {
     final phone = _phoneController.text.trim();
     if (phone.isEmpty) return;
 
+    // Remove formatting characters and prepend dial code
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    final fullPhone = '${_selectedCountry.dialCode}$cleanPhone';
+
     setState(() => _isLoading = true);
-    context.read<AuthBloc>().add(VerifyPhoneNumberEvent(phoneNumber: phone));
+    context.read<AuthBloc>().add(
+      VerifyPhoneNumberEvent(phoneNumber: fullPhone),
+    );
   }
 
   void _onSignInWithCode() {
@@ -114,7 +124,61 @@ class _PhoneAuthDialogState extends State<PhoneAuthDialog> {
                       label: 'Phone Number',
                       icon: Icons.phone_android_rounded,
                       keyboardType: TextInputType.phone,
-                      hintText: '+1 123 456 7890',
+                      hintText: _selectedCountry.mask,
+                      inputFormatters: [
+                        PhoneInputFormatter(mask: _selectedCountry.mask),
+                      ],
+                      prefix: GestureDetector(
+                        onTap: () {
+                          showModalBottomSheet<void>(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            builder:
+                                (context) => CountrySelectorBottomSheet(
+                                  selectedCountry: _selectedCountry,
+                                  onCountrySelected: (country) {
+                                    setState(() {
+                                      _selectedCountry = country;
+                                      _phoneController.clear();
+                                    });
+                                  },
+                                ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _selectedCountry.flag,
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _selectedCountry.dialCode,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.white.withValues(alpha: 0.5),
+                              ),
+                              Container(
+                                width: 1,
+                                height: 24,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                                color: Colors.white.withValues(alpha: 0.2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 24),
                     AuthActionButton(

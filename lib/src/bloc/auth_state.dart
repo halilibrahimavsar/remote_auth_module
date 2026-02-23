@@ -33,8 +33,8 @@ class AuthLoadingState extends AuthState {
 
 /// User is authenticated.
 class AuthenticatedState extends AuthState {
-  final AuthUser user;
   const AuthenticatedState(this.user);
+  final AuthUser user;
 
   @override
   bool operator ==(Object other) =>
@@ -59,8 +59,8 @@ class UnauthenticatedState extends AuthState {
 
 /// An error occurred during authentication.
 class AuthErrorState extends AuthState {
-  final String message;
   const AuthErrorState(this.message);
+  final String message;
 
   @override
   bool operator ==(Object other) =>
@@ -97,9 +97,9 @@ class EmailVerificationSentState extends AuthState {
 
 /// Phone code was successfully sent, waiting for user input.
 class PhoneCodeSentState extends AuthState {
+  const PhoneCodeSentState({required this.verificationId, this.resendToken});
   final String verificationId;
   final int? resendToken;
-  const PhoneCodeSentState({required this.verificationId, this.resendToken});
 
   @override
   bool operator ==(Object other) =>
@@ -114,8 +114,8 @@ class PhoneCodeSentState extends AuthState {
 
 /// User registered but needs to verify email before proceeding.
 class EmailVerificationRequiredState extends AuthState {
-  final AuthUser user;
   const EmailVerificationRequiredState(this.user);
+  final AuthUser user;
 
   @override
   bool operator ==(Object other) =>
@@ -128,8 +128,8 @@ class EmailVerificationRequiredState extends AuthState {
 
 /// Display name was updated successfully.
 class DisplayNameUpdatedState extends AuthState {
-  final String newName;
   const DisplayNameUpdatedState(this.newName);
+  final String newName;
 
   @override
   bool operator ==(Object other) =>

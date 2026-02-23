@@ -1,3 +1,5 @@
+// ignore_for_file: lines_longer_than_80_chars
+
 import 'dart:async';
 import 'dart:developer';
 
@@ -14,19 +16,19 @@ export 'package:remote_auth_module/src/bloc/auth_state.dart';
 
 /// Internal event: authentication state changed (from stream).
 class _AuthStateChangedEvent extends AuthEvent {
-  final AuthUser? user;
   const _AuthStateChangedEvent(this.user);
+  final AuthUser? user;
 }
 
 class _PhoneCodeSentInternalEvent extends AuthEvent {
+  const _PhoneCodeSentInternalEvent(this.verificationId, this.resendToken);
   final String verificationId;
   final int? resendToken;
-  const _PhoneCodeSentInternalEvent(this.verificationId, this.resendToken);
 }
 
 class _PhoneVerificationFailedInternalEvent extends AuthEvent {
-  final AuthException exception;
   const _PhoneVerificationFailedInternalEvent(this.exception);
+  final AuthException exception;
 }
 
 /// BLoC for managing authentication state.
@@ -51,10 +53,6 @@ class _PhoneVerificationFailedInternalEvent extends AuthEvent {
 /// )
 /// ```
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final AuthRepository _repository;
-  final RememberMeService _rememberMeService;
-  StreamSubscription<AuthUser?>? _authStateSubscription;
-
   AuthBloc({
     required AuthRepository repository,
     RememberMeService? rememberMeService,
@@ -81,6 +79,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     _subscribeToAuthStateChanges();
   }
+  final AuthRepository _repository;
+  final RememberMeService _rememberMeService;
+  StreamSubscription<AuthUser?>? _authStateSubscription;
 
   Future<void> _onInitialize(
     InitializeAuthEvent event,

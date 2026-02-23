@@ -1,6 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AuthInputField extends StatelessWidget {
+  const AuthInputField({
+    required this.controller,
+    required this.label,
+    required this.icon,
+    super.key,
+    this.obscureText = false,
+    this.onToggleObscure,
+    this.errorText,
+    this.keyboardType,
+    this.onChanged,
+    this.inputFormatters,
+    this.hintText,
+    this.prefix,
+  });
   final TextEditingController controller;
   final String label;
   final IconData icon;
@@ -9,20 +24,9 @@ class AuthInputField extends StatelessWidget {
   final String? errorText;
   final TextInputType? keyboardType;
   final ValueChanged<String>? onChanged;
+  final List<TextInputFormatter>? inputFormatters;
   final String? hintText;
-
-  const AuthInputField({
-    super.key,
-    required this.controller,
-    required this.label,
-    required this.icon,
-    this.obscureText = false,
-    this.onToggleObscure,
-    this.errorText,
-    this.keyboardType,
-    this.onChanged,
-    this.hintText,
-  });
+  final Widget? prefix;
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +48,7 @@ class AuthInputField extends StatelessWidget {
         obscureText: obscureText,
         keyboardType: keyboardType,
         onChanged: onChanged,
+        inputFormatters: inputFormatters,
         style: TextStyle(color: colorScheme.onPrimary),
         decoration: InputDecoration(
           labelText: label,
@@ -61,10 +66,9 @@ class AuthInputField extends StatelessWidget {
             horizontal: 14,
             vertical: 16,
           ),
-          prefixIcon: Icon(
-            icon,
-            color: colorScheme.onPrimary.withValues(alpha: 0.84),
-          ),
+          prefixIcon:
+              prefix ??
+              Icon(icon, color: colorScheme.onPrimary.withValues(alpha: 0.84)),
           suffixIcon:
               onToggleObscure == null
                   ? null
