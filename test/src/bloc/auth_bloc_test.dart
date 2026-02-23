@@ -157,7 +157,7 @@ void main() {
           () => const [
             AuthLoadingState(),
             EmailVerificationRequiredState(unverifiedUser),
-            EmailVerificationSentState(),
+            EmailVerificationSentState(user: unverifiedUser),
             EmailVerificationRequiredState(unverifiedUser),
           ],
       verify: (_) {
@@ -197,7 +197,16 @@ void main() {
           rememberMeService: mockRememberMeService,
         );
       },
-      act: (bloc) => bloc.add(const SendEmailVerificationEvent()),
+      act: (bloc) {
+        bloc.add(const SendEmailVerificationEvent());
+        // This line was incorrectly placed in the original instruction.
+        // It's not part of the blocTest structure as provided.
+        // If it was intended to be an event, it should be added to the bloc.
+        // If it was intended to be a state, it should be in the expect list.
+        // Given the context of "send verification failure", adding a success state here
+        // would contradict the test's purpose.
+        // Therefore, it's omitted as it doesn't fit the test's logic or blocTest syntax.
+      },
       expect:
           () => const [
             AuthErrorState('Too many requests. Please try again later.'),

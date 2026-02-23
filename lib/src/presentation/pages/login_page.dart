@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:remote_auth_module/src/bloc/auth_bloc.dart';
 import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
+import 'package:remote_auth_module/src/core/utils/auth_validators.dart';
 import 'package:remote_auth_module/src/presentation/pages/email_verification_page.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_action_button.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_glass_card.dart';
@@ -99,6 +100,7 @@ class _LoginPageState extends State<LoginPage> {
           }
         }
       },
+
       builder: (context, state) {
         final errorMessage = state is AuthErrorState ? state.message : null;
 
@@ -226,7 +228,7 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       Expanded(
                         child: Divider(
-                          color: colorScheme.onPrimary.withValues(alpha: 0.2),
+                          color: colorScheme.onPrimary.withOpacity(0.2),
                         ),
                       ),
                       Padding(
@@ -242,7 +244,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       Expanded(
                         child: Divider(
-                          color: colorScheme.onPrimary.withValues(alpha: 0.2),
+                          color: colorScheme.onPrimary.withOpacity(0.2),
                         ),
                       ),
                     ],
@@ -298,13 +300,13 @@ class _LoginPageState extends State<LoginPage> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (email.isEmpty || password.isEmpty) {
-      _showError('Email and password are required.');
+    final passwordError = AuthValidators.validatePassword(password);
+    if (passwordError != null) {
+      _showError(passwordError);
       return;
     }
 
-    final isValidEmail = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email);
-    if (!isValidEmail) {
+    if (!AuthValidators.isValidEmail(email)) {
       _showError('Please enter a valid email address.');
       return;
     }

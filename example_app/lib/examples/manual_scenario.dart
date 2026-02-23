@@ -27,6 +27,10 @@ class ManualIntegrationScenario extends StatelessWidget {
           return EmailVerificationPage(user: state.user);
         }
 
+        if (state is EmailVerificationSentState) {
+          return EmailVerificationPage(user: state.user);
+        }
+
         // Default to Login Page if Unauthenticated
         return LoginPage(
           title: 'Custom Integration',

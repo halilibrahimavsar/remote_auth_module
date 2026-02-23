@@ -135,7 +135,7 @@ void main() {
 
       verify(() => bloc.add(const RefreshCurrentUserEvent())).called(1);
 
-      stateController.add(const EmailVerificationSentState());
+      stateController.add(EmailVerificationSentState(user: unverifiedUser));
       await tester.pump();
 
       expect(find.textContaining('Resend in'), findsOneWidget);

@@ -112,7 +112,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     // Firebase's authStateChanges stream always fires after a manual sign-in,
     // which would otherwise call onAuthenticated twice in the UI layer.
     final current = state;
-    if (current is AuthenticatedState && event.user?.id == current.user.id) {
+    if (current is AuthenticatedState &&
+        event.user?.id == current.user.id &&
+        event.user?.isEmailVerified == current.user.isEmailVerified &&
+        event.user?.displayName == current.user.displayName) {
       return;
     }
     _emitStateForUser(emit, event.user);
@@ -265,7 +268,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       log('[AuthBloc] Requesting email verification send...');
       await _repository.sendEmailVerification();
       log('[AuthBloc] Email verification sent successfully.');
-      emit(const EmailVerificationSentState());
+      final user = await _repository.getCurrentUser();
+      if (user != null) {
+        emit(EmailVerificationSentState(user: user));
+      } else {
+        // Fallback for edge cases where user is suddenly null
+        emit(
+          const AuthErrorState('User not found after sending verification.'),
+        );
+        return;
+      }
 
       // Give listeners a small amount of time to process the Sent state
       // before potentially navigating away/rebuilding via _emitStateForUser.

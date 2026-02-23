@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:remote_auth_module/src/bloc/auth_bloc.dart';
 import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
+import 'package:remote_auth_module/src/core/utils/auth_validators.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_action_button.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_glass_card.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_gradient_scaffold.dart';
@@ -328,13 +329,14 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
+    if (!AuthValidators.isValidEmail(email)) {
       _showError('Please enter a valid email address.');
       return;
     }
 
-    if (password.length < 6) {
-      _showError('Password must be at least 6 characters.');
+    final passwordError = AuthValidators.validatePassword(password);
+    if (passwordError != null) {
+      _showError(passwordError);
       return;
     }
 

@@ -43,6 +43,8 @@ class PhoneAuthService {
         },
         codeAutoRetrievalTimeout: (String verificationId) {
           log('[PhoneAuthService] Auto-retrieval timeout: $verificationId');
+          // Notify the caller so they can still use the verificationId for manual entry
+          onCodeSent(verificationId, null);
         },
       );
     } catch (e) {

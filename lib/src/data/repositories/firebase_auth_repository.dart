@@ -197,7 +197,10 @@ class FirebaseAuthRepository implements AuthRepository {
       onCodeSent: onCodeSent,
       onVerificationFailed: onVerificationFailed,
       onVerificationCompleted: (user) async {
-        await _syncUserDocument(_auth.currentUser!);
+        final fbUser = _auth.currentUser;
+        if (fbUser != null) {
+          await _syncUserDocument(fbUser);
+        }
         onVerificationCompleted(user);
       },
     );

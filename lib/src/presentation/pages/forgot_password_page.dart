@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:remote_auth_module/src/bloc/auth_bloc.dart';
+import 'package:remote_auth_module/src/bloc/auth_event.dart';
+import 'package:remote_auth_module/src/bloc/auth_state.dart';
+import 'package:remote_auth_module/src/core/utils/auth_validators.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_action_button.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_glass_card.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_gradient_scaffold.dart';
@@ -113,13 +116,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   void _sendReset() {
     final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      _showError('Email is required.');
-      return;
-    }
-
-    final isValidEmail = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email);
-    if (!isValidEmail) {
+    if (!AuthValidators.isValidEmail(email)) {
       _showError('Please enter a valid email address.');
       return;
     }

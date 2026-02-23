@@ -85,14 +85,16 @@ class PasswordResetSentState extends AuthState {
 
 /// Email verification was sent.
 class EmailVerificationSentState extends AuthState {
-  const EmailVerificationSentState();
+  const EmailVerificationSentState({required this.user});
+  final AuthUser user;
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) || other is EmailVerificationSentState;
+      identical(this, other) ||
+      other is EmailVerificationSentState && user == other.user;
 
   @override
-  int get hashCode => runtimeType.hashCode;
+  int get hashCode => Object.hash(runtimeType, user);
 }
 
 /// Phone code was successfully sent, waiting for user input.

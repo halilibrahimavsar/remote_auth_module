@@ -104,7 +104,9 @@ class _AuthFlowGateState extends State<_AuthFlowGate> {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       buildWhen: (previous, current) {
-        // Only rebuild if the runtime type changes
+        // Rebuild if error occurred to show the message
+        if (current is AuthErrorState) return true;
+        // Only rebuild if the runtime type changes for other states
         return previous.runtimeType != current.runtimeType;
       },
       builder: (context, state) {
@@ -130,6 +132,10 @@ class _AuthFlowGateState extends State<_AuthFlowGate> {
         }
 
         if (effectiveState is EmailVerificationRequiredState) {
+          return EmailVerificationPage(user: effectiveState.user);
+        }
+
+        if (effectiveState is EmailVerificationSentState) {
           return EmailVerificationPage(user: effectiveState.user);
         }
 

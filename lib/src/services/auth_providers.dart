@@ -71,9 +71,7 @@ class EmailAuthProvider {
 
   Future<void> sendPasswordReset({required String email}) async {
     try {
-      log(
-        '[EmailAuthProvider] Triggering auth.sendPasswordResetEmail(email: $email)...',
-      );
+      log('[EmailAuthProvider] Triggering auth.sendPasswordResetEmail...');
       await auth.sendPasswordResetEmail(email: email);
       log('[EmailAuthProvider] auth.sendPasswordResetEmail() call finished.');
     } on fb.FirebaseAuthException catch (e) {
@@ -157,8 +155,8 @@ class GoogleAuthService {
   final String? serverClientId;
   final String? clientId;
 
-  static Future<void>? _initializeFuture;
-  static ({String? serverClientId, String? clientId})? _initConfig;
+  Future<void>? _initializeFuture;
+  ({String? serverClientId, String? clientId})? _initConfig;
   static const List<String> _firebaseScopes = <String>['email'];
 
   /// Prevent concurrent sign-in attempts which cause NotAllowedError on Web.
