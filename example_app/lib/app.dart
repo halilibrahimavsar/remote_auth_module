@@ -23,7 +23,7 @@ class _ExampleAppState extends State<ExampleApp> {
   AuthRepository? _authRepository;
   AuthBloc? _authBloc;
   bool _isDarkMode = false;
-  int _currentScenario = 0; // 0: Flow, 1: Manual, 2: DI Configuration
+  int _currentScenario = 0;
   bool _showDashboard = true;
 
   @override
@@ -125,39 +125,19 @@ class _ExampleAppState extends State<ExampleApp> {
                       }),
                 ),
                 const Divider(),
-                ListTile(
-                  title: const Text('RemoteAuthFlow (Easy)'),
-                  leading: const Icon(Icons.auto_fix_high),
-                  selected: !_showDashboard && _currentScenario == 0,
-                  onTap:
-                      () => setState(() {
-                        _currentScenario = 0;
-                        _showDashboard = false;
-                        Navigator.pop(context);
-                      }),
+                _buildDrawerItem('Default Template', Icons.auto_fix_high, 0),
+                _buildDrawerItem('🌌 Aurora Template', Icons.auto_awesome, 3),
+                _buildDrawerItem('🌊 Wave Template', Icons.water, 4),
+                _buildDrawerItem('⚡ Neon Template', Icons.bolt, 5),
+                _buildDrawerItem('✨ Nova Template', Icons.nights_stay, 6),
+                _buildDrawerItem('💎 Prisma Template', Icons.view_in_ar, 7),
+                const Divider(),
+                _buildDrawerItem(
+                  'Manual Integration',
+                  Icons.settings_input_component,
+                  1,
                 ),
-                ListTile(
-                  title: const Text('Manual Integration'),
-                  leading: const Icon(Icons.settings_input_component),
-                  selected: !_showDashboard && _currentScenario == 1,
-                  onTap:
-                      () => setState(() {
-                        _currentScenario = 1;
-                        _showDashboard = false;
-                        Navigator.pop(context);
-                      }),
-                ),
-                ListTile(
-                  title: const Text('DI & Repo Config'),
-                  leading: const Icon(Icons.extension),
-                  selected: !_showDashboard && _currentScenario == 2,
-                  onTap:
-                      () => setState(() {
-                        _currentScenario = 2;
-                        _showDashboard = false;
-                        Navigator.pop(context);
-                      }),
-                ),
+                _buildDrawerItem('DI & Repo Config', Icons.extension, 2),
                 const Divider(),
                 ListTile(
                   title: const Text('Toggle Theme'),
@@ -175,6 +155,28 @@ class _ExampleAppState extends State<ExampleApp> {
     );
   }
 
+  ListTile _buildDrawerItem(String title, IconData icon, int index) {
+    return ListTile(
+      title: Text(title),
+      leading: Icon(icon),
+      selected: !_showDashboard && _currentScenario == index,
+      onTap:
+          () => setState(() {
+            _currentScenario = index;
+            _showDashboard = false;
+            Navigator.pop(context);
+          }),
+    );
+  }
+
+  Widget _homeBuilder(BuildContext context, AuthUser user) {
+    return HomePage(
+      user: user,
+      onToggleTheme: _toggleTheme,
+      isDarkMode: _isDarkMode,
+    );
+  }
+
   Widget _buildScenario() {
     if (_showDashboard) {
       return ScenarioDashboard(
@@ -186,6 +188,16 @@ class _ExampleAppState extends State<ExampleApp> {
       );
     }
 
+    // Shared config — toggle features on/off here
+    const config = AuthTemplateConfig(
+      showGoogleSignIn: true,
+      showPhoneSignIn: true,
+      showAnonymousSignIn: true,
+      showRegister: true,
+      showForgotPassword: true,
+      showRememberMe: true,
+    );
+
     switch (_currentScenario) {
       case 0:
         return RemoteAuthFlow(
@@ -193,17 +205,29 @@ class _ExampleAppState extends State<ExampleApp> {
           showGoogleSignIn: true,
           showPhoneSignIn: true,
           showAnonymousSignIn: true,
-          authenticatedBuilder:
-              (context, user) => HomePage(
-                user: user,
-                onToggleTheme: _toggleTheme,
-                isDarkMode: _isDarkMode,
-              ),
+          authenticatedBuilder: _homeBuilder,
         );
       case 1:
         return const ManualIntegrationScenario();
       case 2:
         return const DIExamplePage();
+      case 3:
+        return AuroraAuthFlow(
+          config: config,
+          authenticatedBuilder: _homeBuilder,
+        );
+      case 4:
+        return WaveAuthFlow(config: config, authenticatedBuilder: _homeBuilder);
+      case 5:
+        return NeonAuthFlow(config: config, authenticatedBuilder: _homeBuilder);
+      case 6:
+        return NovaAuthFlow(config: config, authenticatedBuilder: _homeBuilder);
+      case 7:
+        return PrismaAuthFlow(
+          config: config,
+          authenticatedBuilder: _homeBuilder,
+        );
+
       default:
         return Container();
     }

@@ -29,16 +29,29 @@ class HomePage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              final confirmed = await showAuthConfirmDialog(
-                context,
-                title: 'Log Out',
-                message: 'Are you sure you want to log out?',
-                confirmLabel: 'Log Out',
-                icon: Icons.logout,
-                confirmColor: theme.colorScheme.error,
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder:
+                    (context) => AlertDialog(
+                      title: const Text('Log Out'),
+                      content: const Text('Are you sure you want to log out?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancel'),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: theme.colorScheme.error,
+                          ),
+                          child: const Text('Log Out'),
+                        ),
+                      ],
+                    ),
               );
 
-              if (confirmed && context.mounted) {
+              if (confirmed == true && context.mounted) {
                 context.read<AuthBloc>().add(const SignOutEvent());
               }
             },
