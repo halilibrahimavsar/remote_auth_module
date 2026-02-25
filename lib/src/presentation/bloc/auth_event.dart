@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart';
+import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
+import 'package:remote_auth_module/src/domain/failures/auth_failure.dart';
 
 /// Base class for all authentication events.
-@immutable
-abstract class AuthEvent {
+sealed class AuthEvent {
   const AuthEvent();
 }
 
@@ -87,4 +87,21 @@ class UpdatePasswordEvent extends AuthEvent {
   });
   final String currentPassword;
   final String newPassword;
+}
+
+/// Internal event: authentication state changed (from stream).
+class AuthStateChangedEvent extends AuthEvent {
+  const AuthStateChangedEvent(this.user);
+  final AuthUser? user;
+}
+
+class PhoneCodeSentInternalEvent extends AuthEvent {
+  const PhoneCodeSentInternalEvent(this.verificationId, this.resendToken);
+  final String verificationId;
+  final int? resendToken;
+}
+
+class PhoneVerificationFailedInternalEvent extends AuthEvent {
+  const PhoneVerificationFailedInternalEvent(this.failure);
+  final AuthFailure failure;
 }

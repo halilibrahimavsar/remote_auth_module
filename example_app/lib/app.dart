@@ -39,6 +39,8 @@ class _ExampleAppState extends State<ExampleApp> {
       createUserCollection: true,
       serverClientId:
           '789348142189-58e9t524q6pk14a67pk21lasvogudlaj.apps.googleusercontent.com',
+      clientId:
+          '789348142189-58e9t524q6pk14a67pk21lasvogudlaj.apps.googleusercontent.com',
     );
 
     _authBloc = AuthBloc(repository: _authRepository!)

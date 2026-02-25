@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bloc_test/bloc_test.dart';
+import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:remote_auth_module/remote_auth_module.dart';
@@ -38,16 +39,18 @@ void main() {
     when(
       () => mockAuthRepository.authStateChanges,
     ).thenAnswer((_) => authStateController.stream);
-    when(() => mockAuthRepository.signOut()).thenAnswer((_) async {});
+    when(
+      () => mockAuthRepository.signOut(),
+    ).thenAnswer((_) async => const Right(unit));
     when(
       () => mockAuthRepository.getCurrentUser(),
-    ).thenAnswer((_) async => null);
+    ).thenAnswer((_) async => const Right(null));
     when(
       () => mockAuthRepository.reloadCurrentUser(),
-    ).thenAnswer((_) async => null);
+    ).thenAnswer((_) async => const Right(null));
     when(
       () => mockAuthRepository.sendEmailVerification(),
-    ).thenAnswer((_) async {});
+    ).thenAnswer((_) async => const Right(unit));
   });
 
   group('AuthBloc', () {
@@ -66,7 +69,7 @@ void main() {
       build: () {
         when(
           () => mockAuthRepository.initializeSession(),
-        ).thenAnswer((_) async => verifiedUser);
+        ).thenAnswer((_) async => const Right(verifiedUser));
 
         return AuthBloc(
           repository: mockAuthRepository,
@@ -93,7 +96,7 @@ void main() {
         );
       },
       act: (bloc) => bloc.add(const InitializeAuthEvent()),
-      expect: () => [const AuthLoadingState(), const UnauthenticatedState()],
+      expect: () => const [AuthLoadingState(), UnauthenticatedState()],
       verify: (_) {
         verify(() => mockAuthRepository.signOut()).called(1);
       },
@@ -107,7 +110,7 @@ void main() {
             email: 'u@test.com',
             password: 'password',
           ),
-        ).thenAnswer((_) async => unverifiedUser);
+        ).thenAnswer((_) async => const Right(unverifiedUser));
 
         return AuthBloc(
           repository: mockAuthRepository,
@@ -134,10 +137,17 @@ void main() {
             email: 'new@test.com',
             password: 'password',
           ),
-        ).thenAnswer((_) async => unverifiedUser);
+        ).thenAnswer((_) async => const Right(unverifiedUser));
         when(
           () => mockAuthRepository.reloadCurrentUser(),
-        ).thenAnswer((_) async => unverifiedUser);
+        ).thenAnswer((_) async => const Right(unverifiedUser));
+
+        when(
+          () => mockAuthRepository.sendEmailVerification(),
+        ).thenAnswer((_) async => const Right(unit));
+        when(
+          () => mockAuthRepository.getCurrentUser(),
+        ).thenAnswer((_) async => const Right(unverifiedUser));
 
         return AuthBloc(
           repository: mockAuthRepository,
@@ -152,7 +162,7 @@ void main() {
           ),
         );
       },
-      wait: const Duration(milliseconds: 150),
+      wait: const Duration(milliseconds: 300),
       expect:
           () => const [
             AuthLoadingState(),
@@ -170,7 +180,7 @@ void main() {
       build: () {
         when(
           () => mockAuthRepository.reloadCurrentUser(),
-        ).thenAnswer((_) async => verifiedUser);
+        ).thenAnswer((_) async => const Right(verifiedUser));
 
         return AuthBloc(
           repository: mockAuthRepository,
@@ -187,10 +197,13 @@ void main() {
       build: () {
         when(
           () => mockAuthRepository.sendEmailVerification(),
-        ).thenThrow(const TooManyRequestsException());
+        ).thenAnswer((_) async => const Left(UnexpectedAuthFailure('error')));
+        when(
+          () => mockAuthRepository.getCurrentUser(),
+        ).thenAnswer((_) async => const Right(unverifiedUser));
         when(
           () => mockAuthRepository.reloadCurrentUser(),
-        ).thenAnswer((_) async => unverifiedUser);
+        ).thenAnswer((_) async => const Right(unverifiedUser));
 
         return AuthBloc(
           repository: mockAuthRepository,
@@ -199,17 +212,10 @@ void main() {
       },
       act: (bloc) {
         bloc.add(const SendEmailVerificationEvent());
-        // This line was incorrectly placed in the original instruction.
-        // It's not part of the blocTest structure as provided.
-        // If it was intended to be an event, it should be added to the bloc.
-        // If it was intended to be a state, it should be in the expect list.
-        // Given the context of "send verification failure", adding a success state here
-        // would contradict the test's purpose.
-        // Therefore, it's omitted as it doesn't fit the test's logic or blocTest syntax.
       },
       expect:
           () => const [
-            AuthErrorState('Too many requests. Please try again later.'),
+            AuthErrorState('error'),
             EmailVerificationRequiredState(unverifiedUser),
           ],
     );
@@ -219,7 +225,7 @@ void main() {
       build: () {
         when(
           () => mockAuthRepository.signInWithGoogle(),
-        ).thenThrow(const GoogleSignInCancelledException());
+        ).thenAnswer((_) async => const Left(GoogleSignInCancelledFailure()));
 
         return AuthBloc(
           repository: mockAuthRepository,
@@ -227,7 +233,7 @@ void main() {
         );
       },
       act: (bloc) => bloc.add(const SignInWithGoogleEvent()),
-      expect: () => [const AuthLoadingState(), const UnauthenticatedState()],
+      expect: () => const [AuthLoadingState(), UnauthenticatedState()],
     );
 
     blocTest<AuthBloc, AuthState>(
@@ -238,7 +244,11 @@ void main() {
             currentPassword: 'old',
             newPassword: 'new',
           ),
-        ).thenAnswer((_) async {});
+        ).thenAnswer((_) async => const Right(unit));
+
+        when(
+          () => mockAuthRepository.signOut(),
+        ).thenAnswer((_) async => const Right(unit));
 
         return AuthBloc(
           repository: mockAuthRepository,
@@ -253,10 +263,11 @@ void main() {
             ),
           ),
       expect:
-          () => [
-            const PasswordUpdatedState(),
-            const AuthLoadingState(),
-            const UnauthenticatedState(),
+          () => const [
+            AuthLoadingState(),
+            PasswordUpdatedState(),
+            AuthLoadingState(),
+            UnauthenticatedState(),
           ],
       verify: (_) {
         verify(() => mockAuthRepository.signOut()).called(1);
@@ -268,7 +279,7 @@ void main() {
       build: () {
         when(
           () => mockAuthRepository.signInAnonymously(),
-        ).thenAnswer((_) async => verifiedUser);
+        ).thenAnswer((_) async => const Right(verifiedUser));
 
         return AuthBloc(
           repository: mockAuthRepository,
@@ -306,9 +317,9 @@ void main() {
           (bloc) =>
               bloc.add(const VerifyPhoneNumberEvent(phoneNumber: '+123456789')),
       expect:
-          () => [
-            const AuthLoadingState(),
-            const PhoneCodeSentState(verificationId: 'v-id', resendToken: 123),
+          () => const [
+            AuthLoadingState(),
+            PhoneCodeSentState(verificationId: 'v-id', resendToken: 123),
           ],
     );
 
@@ -320,7 +331,7 @@ void main() {
             verificationId: any(named: 'verificationId'),
             smsCode: any(named: 'smsCode'),
           ),
-        ).thenAnswer((_) async => verifiedUser);
+        ).thenAnswer((_) async => const Right(verifiedUser));
 
         return AuthBloc(
           repository: mockAuthRepository,

@@ -1,0 +1,62 @@
+version: "2"
+type: backend
+tech_stack:
+  - Dart
+  - Flutter
+  - Firebase Auth
+  - Cloud Firestore
+  - BLoC
+features:
+  - name: Email Authentication
+    description: Email and password sign-in and registration
+    files:
+      - lib/src/data/repositories/firebase_auth_repository.dart
+      - lib/src/presentation/bloc/auth_bloc.dart
+    endpoints:
+      - method: POST
+        path: /auth/login
+        description: Sign in with email and password
+        auth_required: false
+      - method: POST
+        path: /auth/register
+        description: Register a new user with email and password
+        auth_required: false
+  - name: Google Authentication
+    description: Sign in using Google OAuth
+    files:
+      - lib/src/services/auth_providers.dart
+    endpoints:
+      - method: POST
+        path: /auth/google
+        description: Sign in with Google
+        auth_required: false
+  - name: Phone Authentication
+    description: Sign in using phone number and SMS verification
+    files:
+      - lib/src/services/phone_auth_service.dart
+    endpoints:
+      - method: POST
+        path: /auth/phone/verify
+        description: Verify phone number and send SMS code
+        auth_required: false
+      - method: POST
+        path: /auth/phone/confirm
+        description: Confirm SMS code and sign in
+        auth_required: false
+  - name: Profile Management
+    description: Update user profile information
+    files:
+      - lib/src/data/repositories/firebase_auth_repository.dart
+    endpoints:
+      - method: PUT
+        path: /user/display-name
+        description: Update user display name
+        auth_required: true
+      - method: PUT
+        path: /user/password
+        description: Update user password
+        auth_required: true
+known_limitations:
+  - issue: Google Sign-In requires native/web configuration
+    location: lib/src/services/auth_providers.dart
+    impact: May not work in pure test environments without mocking

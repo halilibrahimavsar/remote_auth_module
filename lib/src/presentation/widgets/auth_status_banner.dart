@@ -18,7 +18,7 @@ class AuthStatusBanner extends StatelessWidget {
 
     final accent = switch (type) {
       AuthStatusBannerType.error => colorScheme.error,
-      AuthStatusBannerType.success => const Color(0xFF22C55E),
+      AuthStatusBannerType.success => colorScheme.primaryContainer,
       AuthStatusBannerType.info => colorScheme.onPrimary,
     };
 

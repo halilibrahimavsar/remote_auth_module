@@ -1,7 +1,10 @@
+import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:remote_auth_module/src/data/repositories/firebase_auth_repository.dart';
+import 'package:remote_auth_module/src/domain/failures/auth_failure.dart';
+import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
 
 class MockFirebaseAuth extends Mock implements fb.FirebaseAuth {}
 
@@ -16,14 +19,18 @@ void main() {
     mockAuth = MockFirebaseAuth();
   });
 
+  FirebaseAuthRepository createRepository() {
+    return FirebaseAuthRepository(auth: mockAuth);
+  }
+
   group('FirebaseAuthRepository.reloadCurrentUser', () {
     test('returns null when there is no current user', () async {
       when(() => mockAuth.currentUser).thenReturn(null);
 
-      final repository = FirebaseAuthRepository(auth: mockAuth);
+      final repository = createRepository();
       final result = await repository.reloadCurrentUser();
 
-      expect(result, isNull);
+      expect(result, const Right<AuthFailure, AuthUser?>(null));
     });
 
     test('reloads and returns updated user snapshot', () async {
@@ -56,13 +63,19 @@ void main() {
         return currentUserReadCount == 1 ? initialUser : refreshedUser;
       });
 
-      final repository = FirebaseAuthRepository(auth: mockAuth);
+      final repository = createRepository();
       final result = await repository.reloadCurrentUser();
 
       verify(() => initialUser.reload()).called(1);
-      expect(result, isNotNull);
-      expect(result!.id, 'uid-123');
-      expect(result.isEmailVerified, isTrue);
+      expect(result.isRight(), isTrue);
+      result.fold(
+        (failure) => fail('Expected Right(AuthUser), got Left($failure)'),
+        (user) {
+          expect(user, isNotNull);
+          expect(user!.id, 'uid-123');
+          expect(user.isEmailVerified, isTrue);
+        },
+      );
     });
   });
 }

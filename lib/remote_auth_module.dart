@@ -5,13 +5,14 @@
 /// Supports multi-Firebase-app configurations and clean architecture patterns.
 library;
 
-export 'src/bloc/auth_bloc.dart';
-export 'src/bloc/auth_event.dart';
-export 'src/bloc/auth_state.dart';
-export 'src/core/exceptions/auth_exceptions.dart';
+export 'src/core/storage/secure_storage_service.dart';
 export 'src/data/repositories/firebase_auth_repository.dart';
 export 'src/domain/entities/auth_user.dart';
+export 'src/domain/failures/auth_failure.dart';
 export 'src/domain/repositories/auth_repository.dart';
+export 'src/presentation/bloc/auth_bloc.dart';
+export 'src/presentation/bloc/auth_event.dart';
+export 'src/presentation/bloc/auth_state.dart';
 export 'src/presentation/pages/change_password_page.dart';
 export 'src/presentation/pages/email_verification_page.dart';
 export 'src/presentation/pages/forgot_password_page.dart';

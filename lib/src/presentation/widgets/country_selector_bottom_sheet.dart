@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:remote_auth_module/src/domain/models/country_model.dart';
+import 'package:remote_auth_module/src/domain/entities/country.dart';
 
 class CountrySelectorBottomSheet extends StatelessWidget {
   final Country selectedCountry;

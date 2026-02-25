@@ -4,7 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:remote_auth_module/src/bloc/auth_bloc.dart';
+import 'package:remote_auth_module/src/presentation/bloc/auth_bloc.dart';
 import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
 import 'package:remote_auth_module/src/core/utils/auth_validators.dart';
 import 'package:remote_auth_module/src/presentation/widgets/auth_action_button.dart';

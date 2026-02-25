@@ -1,13 +1,10 @@
-// ignore_for_file: lines_longer_than_80_chars
-
-import 'package:flutter/foundation.dart';
+import 'package:equatable/equatable.dart';
 
 /// Immutable representation of an authenticated user.
 ///
 /// This is the domain entity exposed by the package.
 /// It wraps the essential user information without leaking Firebase types.
-@immutable
-class AuthUser {
+class AuthUser extends Equatable {
   const AuthUser({
     required this.id,
     required this.email,
@@ -55,28 +52,15 @@ class AuthUser {
   }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is AuthUser &&
-          runtimeType == other.runtimeType &&
-          id == other.id &&
-          email == other.email &&
-          displayName == other.displayName &&
-          photoURL == other.photoURL &&
-          isEmailVerified == other.isEmailVerified &&
-          isAnonymous == other.isAnonymous &&
-          listEquals(providerIds, other.providerIds);
-
-  @override
-  int get hashCode => Object.hash(
+  List<Object?> get props => [
     id,
     email,
     displayName,
     photoURL,
     isEmailVerified,
     isAnonymous,
-    Object.hashAll(providerIds),
-  );
+    providerIds,
+  ];
 
   @override
   String toString() =>

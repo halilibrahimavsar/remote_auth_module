@@ -1,7 +1,6 @@
-import 'dart:developer';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' show User;
+import 'package:remote_auth_module/src/core/logging/app_logger.dart';
 
 /// Service for managing Firestore user collections.
 ///
@@ -15,6 +14,7 @@ class FirestoreUserService {
     required this.firestore,
     this.usersCollection = 'users',
   });
+
   final FirebaseFirestore firestore;
   final String usersCollection;
 
@@ -45,7 +45,10 @@ class FirestoreUserService {
       }
     } catch (e) {
       // Log but don't crash the auth flow.
-      log('[FirestoreUserService] Error syncing user document', error: e);
+      AppLogger.w(
+        '[FirestoreUserService] Error syncing user document',
+        error: e,
+      );
     }
   }
 

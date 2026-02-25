@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:remote_auth_module/src/bloc/auth_bloc.dart';
+import 'package:remote_auth_module/src/presentation/bloc/auth_bloc.dart';
 import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
 import 'package:remote_auth_module/src/core/utils/auth_validators.dart';
 import 'package:remote_auth_module/src/presentation/pages/email_verification_page.dart';
@@ -228,7 +228,7 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       Expanded(
                         child: Divider(
-                          color: colorScheme.onPrimary.withOpacity(0.2),
+                          color: colorScheme.onPrimary.withValues(alpha: 0.2),
                         ),
                       ),
                       Padding(
@@ -244,7 +244,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       Expanded(
                         child: Divider(
-                          color: colorScheme.onPrimary.withOpacity(0.2),
+                          color: colorScheme.onPrimary.withValues(alpha: 0.2),
                         ),
                       ),
                     ],

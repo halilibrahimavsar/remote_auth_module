@@ -1,10 +1,10 @@
-import 'dart:developer';
-
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:remote_auth_module/src/core/exceptions/auth_exceptions.dart';
-import 'package:remote_auth_module/src/data/models/auth_user_mapper.dart';
+import 'package:remote_auth_module/src/core/logging/app_logger.dart';
+import 'package:remote_auth_module/src/data/models/auth_user_dto.dart';
 import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
+import 'package:remote_auth_module/src/domain/failures/auth_failure.dart';
 
 /// Handles email/password and common Firebase Auth operations.
 class EmailAuthProvider {
@@ -23,7 +23,7 @@ class EmailAuthProvider {
       );
       final user = credential.user;
       if (user == null) {
-        throw const GenericAuthException(cause: 'user-not-created');
+        throw const UnexpectedAuthFailure('user-not-created');
       }
       return user.toDomain();
     } on fb.FirebaseAuthException catch (e) {
@@ -42,7 +42,7 @@ class EmailAuthProvider {
       );
       final user = credential.user;
       if (user == null) {
-        throw const GenericAuthException(cause: 'missing-authenticated-user');
+        throw const UnexpectedAuthFailure('missing-authenticated-user');
       }
       return user.toDomain();
     } on fb.FirebaseAuthException catch (e) {
@@ -53,15 +53,21 @@ class EmailAuthProvider {
   Future<void> sendEmailVerification() async {
     final user = auth.currentUser;
     if (user == null) {
-      log('[EmailAuthProvider] Cannot send verification: No user logged in.');
-      throw const UserNotLoggedInException();
+      AppLogger.w(
+        '[EmailAuthProvider] Cannot send verification: No user logged in.',
+      );
+      throw const UserNotLoggedInFailure();
     }
     try {
-      log('[EmailAuthProvider] Triggering user.sendEmailVerification()...');
+      AppLogger.d(
+        '[EmailAuthProvider] Triggering user.sendEmailVerification()...',
+      );
       await user.sendEmailVerification();
-      log('[EmailAuthProvider] user.sendEmailVerification() call finished.');
+      AppLogger.d(
+        '[EmailAuthProvider] user.sendEmailVerification() call finished.',
+      );
     } on fb.FirebaseAuthException catch (e) {
-      log(
+      AppLogger.e(
         '[EmailAuthProvider] FirebaseAuthException during verification: ${e.code}',
         error: e,
       );
@@ -71,21 +77,25 @@ class EmailAuthProvider {
 
   Future<void> sendPasswordReset({required String email}) async {
     try {
-      log('[EmailAuthProvider] Triggering auth.sendPasswordResetEmail...');
+      AppLogger.d(
+        '[EmailAuthProvider] Triggering auth.sendPasswordResetEmail...',
+      );
       await auth.sendPasswordResetEmail(email: email);
-      log('[EmailAuthProvider] auth.sendPasswordResetEmail() call finished.');
+      AppLogger.d(
+        '[EmailAuthProvider] auth.sendPasswordResetEmail() call finished.',
+      );
     } on fb.FirebaseAuthException catch (e) {
-      log(
+      AppLogger.e(
         '[EmailAuthProvider] FirebaseAuthException during password reset: ${e.code}',
         error: e,
       );
-      throw PasswordResetException(e.message ?? e.code);
+      throw PasswordResetFailure(e.message ?? e.code);
     }
   }
 
   Future<void> updateDisplayName(String name) async {
     final user = auth.currentUser;
-    if (user == null) throw const UserNotLoggedInException();
+    if (user == null) throw const UserNotLoggedInFailure();
 
     try {
       await user.updateDisplayName(name);
@@ -93,7 +103,7 @@ class EmailAuthProvider {
     } on fb.FirebaseAuthException catch (e) {
       throw mapFirebaseAuthCode(e.code);
     } catch (e) {
-      throw GenericAuthException(cause: e);
+      throw UnexpectedAuthFailure(e.toString());
     }
   }
 
@@ -102,27 +112,24 @@ class EmailAuthProvider {
     required String newPassword,
   }) async {
     final user = auth.currentUser;
-    if (user == null) throw const UserNotLoggedInException();
+    if (user == null) throw const UserNotLoggedInFailure();
     final email = user.email;
     if (email == null || email.isEmpty) {
-      throw const PasswordChangeNotSupportedException();
+      throw const PasswordChangeNotSupportedFailure();
     }
 
     try {
-      // Re-authenticate user to ensure they are who they say they are
-      // This is critical for sensitive operations like changing password
       final credential = fb.EmailAuthProvider.credential(
         email: email,
         password: currentPassword,
       );
 
       await user.reauthenticateWithCredential(credential);
-
       await user.updatePassword(newPassword);
     } on fb.FirebaseAuthException catch (e) {
       throw mapFirebaseAuthCode(e.code);
     } catch (e) {
-      throw GenericAuthException(cause: e);
+      throw UnexpectedAuthFailure(e.toString());
     }
   }
 
@@ -130,25 +137,12 @@ class EmailAuthProvider {
     try {
       await auth.signOut();
     } catch (e) {
-      throw SignOutException('Failed to sign out: $e');
+      throw SignOutFailure('Failed to sign out: $e');
     }
   }
 }
 
 /// Handles Google Sign-In operations.
-///
-/// Uses the `google_sign_in` v7 singleton API.
-/// The FirebaseAuth instance is injectable for multi-app support.
-///
-/// On Android, [serverClientId] (the Web Client ID from Google Cloud Console)
-/// is **required** by the underlying SDK.
-///
-/// ```dart
-/// GoogleAuthService(
-///   auth: FirebaseAuth.instance,
-///   serverClientId: '123456789-abc.apps.googleusercontent.com',
-/// )
-/// ```
 class GoogleAuthService {
   final fb.FirebaseAuth auth;
   final GoogleSignIn _googleSignIn;
@@ -159,7 +153,6 @@ class GoogleAuthService {
   ({String? serverClientId, String? clientId})? _initConfig;
   static const List<String> _firebaseScopes = <String>['email'];
 
-  /// Prevent concurrent sign-in attempts which cause NotAllowedError on Web.
   static bool _isOperationInProgress = false;
 
   GoogleAuthService({
@@ -169,9 +162,6 @@ class GoogleAuthService {
     GoogleSignIn? googleSignIn,
   }) : _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
 
-  /// Ensures GoogleSignIn is initialized exactly once.
-  ///
-  /// google_sign_in 7.x requires initialize() before any other call.
   Future<void> _ensureInitialized() async {
     final requestedConfig = (
       serverClientId: serverClientId,
@@ -179,7 +169,7 @@ class GoogleAuthService {
     );
     final existingConfig = _initConfig;
     if (existingConfig != null && existingConfig != requestedConfig) {
-      log(
+      AppLogger.w(
         '[GoogleAuthService] initialize called with different config. '
         'Existing: $existingConfig, Requested: $requestedConfig',
       );
@@ -200,17 +190,18 @@ class GoogleAuthService {
 
   Future<AuthUser> signIn() async {
     if (_isOperationInProgress) {
-      log(
+      AppLogger.w(
         '[GoogleAuthService] Sign-in already in progress. Ignoring concurrent request.',
       );
-      throw const GoogleSignInInterruptedException();
+      throw const GoogleSignInInterruptedFailure();
     }
 
     _isOperationInProgress = true;
     try {
-      // Web/Desktop: native google_sign_in is unsupported, use Firebase
-      // Auth's built-in GoogleAuthProvider with signInWithPopup instead.
       if (!_googleSignIn.supportsAuthenticate()) {
+        AppLogger.i(
+          '[GoogleAuthService] Platform does not support native authenticate. Falling back to Firebase Popup.',
+        );
         return await _signInWithFirebasePopup();
       }
 
@@ -219,7 +210,7 @@ class GoogleAuthService {
       final googleUser = await _googleSignIn.authenticate(
         scopeHint: _firebaseScopes,
       );
-      final googleAuth = googleUser.authentication;
+      final googleAuth = await googleUser.authentication;
       String? accessToken;
       final initialAuthorization = await googleUser.authorizationClient
           .authorizationForScopes(_firebaseScopes);
@@ -243,29 +234,30 @@ class GoogleAuthService {
       final userCredential = await auth.signInWithCredential(credential);
       final user = userCredential.user;
       if (user == null) {
-        throw const GenericAuthException(cause: 'missing-google-auth-user');
+        throw const UnexpectedAuthFailure('missing-google-auth-user');
       }
       return user.toDomain();
     } on GoogleSignInException catch (e, stackTrace) {
-      log(
-        '[GoogleAuthService] GoogleSignInException: ${e.code} ${e.description}',
+      AppLogger.e(
+        '[GoogleAuthService] GoogleSignInException: ${e.code} ${e.toString()}',
         error: e,
         stackTrace: stackTrace,
       );
       throw _mapGoogleSignInError(e);
     } on fb.FirebaseAuthException catch (e) {
       throw mapFirebaseAuthCode(e.code);
-    } catch (e) {
-      throw GenericAuthException(cause: e);
+    } catch (e, stackTrace) {
+      AppLogger.e(
+        '[GoogleAuthService] Generic error during signIn(): $e',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw UnexpectedAuthFailure(e.toString());
     } finally {
       _isOperationInProgress = false;
     }
   }
 
-  /// Web/Desktop fallback: uses Firebase Auth's GoogleAuthProvider directly.
-  ///
-  /// On Web this triggers signInWithPopup; on Desktop it triggers
-  /// signInWithProvider. No google_sign_in plugin dependency needed.
   Future<AuthUser> _signInWithFirebasePopup() async {
     try {
       final provider = fb.GoogleAuthProvider();
@@ -273,31 +265,39 @@ class GoogleAuthService {
         provider.addScope(scope);
       }
 
-      final userCredential = await auth.signInWithProvider(provider);
+      final userCredential = await auth.signInWithPopup(provider);
+      AppLogger.i(
+        '[GoogleAuthService] Popup sign-in successful: ${userCredential.user?.uid}',
+      );
       final user = userCredential.user;
       if (user == null) {
-        throw const GenericAuthException(cause: 'missing-google-popup-user');
+        throw const UnexpectedAuthFailure('missing-google-popup-user');
       }
       return user.toDomain();
     } on fb.FirebaseAuthException catch (e) {
+      AppLogger.w(
+        '[GoogleAuthService] FirebaseAuthException during popup: ${e.code} - ${e.message}',
+        error: e,
+      );
       if (e.code == 'popup-closed-by-user' ||
           e.code == 'cancelled-popup-request' ||
           e.code == 'web-context-cancelled') {
-        throw const GoogleSignInCancelledException();
+        throw const GoogleSignInCancelledFailure();
       }
       throw mapFirebaseAuthCode(e.code);
-    } catch (e) {
-      throw GenericAuthException(cause: e);
+    } catch (e, stackTrace) {
+      AppLogger.e(
+        '[GoogleAuthService] Generic error during _signInWithFirebasePopup(): $e',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw UnexpectedAuthFailure(e.toString());
     }
   }
 
-  /// Attempts a lightweight (silent) authentication.
-  ///
-  /// This is non-critical — failures are silently swallowed.
-  /// On Android, this requires [serverClientId] to be set.
   Future<void> signInSilently() async {
     if (_isOperationInProgress) {
-      log(
+      AppLogger.d(
         '[GoogleAuthService] Operation already in progress. Skipping silent sign-in.',
       );
       return;
@@ -307,17 +307,12 @@ class GoogleAuthService {
     try {
       await _ensureInitialized();
 
-      // attemptLightweightAuthentication returns Future? (nullable).
-      // We must await the returned future to catch async errors.
       final future = _googleSignIn.attemptLightweightAuthentication();
       if (future != null) {
-        // Add a safety timeout to prevent indefinite hangs on Android
         await future.timeout(const Duration(seconds: 10));
       }
     } catch (e) {
-      log('[GoogleAuthService] Silent sign-in failed or timed out: $e');
-      // Non-critical: don't crash on silent refresh failure.
-      // Common reasons: no previous sign-in, network issues, timeout.
+      AppLogger.d('[GoogleAuthService] Silent sign-in failed or timed out: $e');
     } finally {
       _isOperationInProgress = false;
     }
@@ -331,20 +326,20 @@ class GoogleAuthService {
     }
   }
 
-  AuthException _mapGoogleSignInError(GoogleSignInException error) {
+  AuthFailure _mapGoogleSignInError(GoogleSignInException error) {
     return switch (error.code) {
       GoogleSignInExceptionCode.canceled =>
-        const GoogleSignInCancelledException(),
+        const GoogleSignInCancelledFailure(),
       GoogleSignInExceptionCode.interrupted =>
-        const GoogleSignInInterruptedException(),
+        const GoogleSignInInterruptedFailure(),
       GoogleSignInExceptionCode.clientConfigurationError ||
       GoogleSignInExceptionCode.providerConfigurationError =>
-        const GoogleSignInConfigurationException(),
+        const GoogleSignInConfigurationFailure(),
       GoogleSignInExceptionCode.uiUnavailable =>
-        const GoogleSignInUnavailableException(),
+        const GoogleSignInUnavailableFailure(),
       GoogleSignInExceptionCode.userMismatch =>
-        const GoogleSignInUserMismatchException(),
-      _ => GenericAuthException(cause: error),
+        const GoogleSignInUserMismatchFailure(),
+      _ => UnexpectedAuthFailure(error.code.name),
     };
   }
 }

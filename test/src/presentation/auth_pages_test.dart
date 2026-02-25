@@ -9,14 +9,10 @@ import 'package:remote_auth_module/remote_auth_module.dart';
 
 class MockAuthBloc extends MockBloc<AuthEvent, AuthState> implements AuthBloc {}
 
-class FakeAuthEvent extends Fake implements AuthEvent {}
-
-class FakeAuthState extends Fake implements AuthState {}
-
 void main() {
   setUpAll(() {
-    registerFallbackValue(FakeAuthEvent());
-    registerFallbackValue(FakeAuthState());
+    registerFallbackValue(const InitializeAuthEvent());
+    registerFallbackValue(const AuthInitialState());
   });
 
   group('Auth pages', () {

@@ -1,9 +1,10 @@
 import 'dart:async';
-import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:remote_auth_module/src/core/exceptions/auth_exceptions.dart';
+import 'package:remote_auth_module/src/core/logging/app_logger.dart';
+import 'package:remote_auth_module/src/data/models/auth_user_dto.dart';
 import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
-import 'package:remote_auth_module/src/data/models/auth_user_mapper.dart';
+import 'package:remote_auth_module/src/domain/failures/auth_failure.dart';
 
 /// Service to handle Firebase Phone Authentication.
 class PhoneAuthService {
@@ -15,14 +16,14 @@ class PhoneAuthService {
   Future<void> verifyPhoneNumber({
     required String phoneNumber,
     required void Function(String verificationId, int? resendToken) onCodeSent,
-    required void Function(AuthException exception) onVerificationFailed,
+    required void Function(AuthFailure exception) onVerificationFailed,
     required void Function(AuthUser user) onVerificationCompleted,
   }) async {
     try {
       await _auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         verificationCompleted: (fb.PhoneAuthCredential credential) async {
-          log('[PhoneAuthService] Auto-verification completed');
+          AppLogger.i('[PhoneAuthService] Auto-verification completed');
           try {
             final userCredential = await _auth.signInWithCredential(credential);
             final user = userCredential.user;
@@ -30,26 +31,28 @@ class PhoneAuthService {
               onVerificationCompleted(user.toDomain());
             }
           } catch (e) {
-            log('[PhoneAuthService] Auto-sign-in failed: $e');
+            AppLogger.e('[PhoneAuthService] Auto-sign-in failed: $e');
           }
         },
         verificationFailed: (fb.FirebaseAuthException e) {
-          log('[PhoneAuthService] Verification failed: ${e.code}');
+          AppLogger.e('[PhoneAuthService] Verification failed: ${e.code}');
           onVerificationFailed(mapFirebaseAuthCode(e.code));
         },
         codeSent: (String verificationId, int? resendToken) {
-          log('[PhoneAuthService] Code sent: $verificationId');
+          AppLogger.i('[PhoneAuthService] Code sent: $verificationId');
           onCodeSent(verificationId, resendToken);
         },
         codeAutoRetrievalTimeout: (String verificationId) {
-          log('[PhoneAuthService] Auto-retrieval timeout: $verificationId');
+          AppLogger.i(
+            '[PhoneAuthService] Auto-retrieval timeout: $verificationId',
+          );
           // Notify the caller so they can still use the verificationId for manual entry
           onCodeSent(verificationId, null);
         },
       );
     } catch (e) {
-      log('[PhoneAuthService] Unexpected error: $e');
-      onVerificationFailed(GenericAuthException(cause: e));
+      AppLogger.e('[PhoneAuthService] Unexpected error: $e');
+      onVerificationFailed(UnexpectedAuthFailure(e.toString()));
     }
   }
 
@@ -66,13 +69,13 @@ class PhoneAuthService {
       final userCredential = await _auth.signInWithCredential(credential);
       final user = userCredential.user;
       if (user == null) {
-        throw const GenericAuthException(cause: 'missing-phone-auth-user');
+        throw const UnexpectedAuthFailure('missing-phone-auth-user');
       }
       return user.toDomain();
     } on fb.FirebaseAuthException catch (e) {
       throw mapFirebaseAuthCode(e.code);
     } catch (e) {
-      throw GenericAuthException(cause: e);
+      throw UnexpectedAuthFailure(e.toString());
     }
   }
 }

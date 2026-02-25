@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
+import 'package:equatable/equatable.dart';
 
 /// Represents a country with its dial code and phone number mask.
-@immutable
-class Country {
+class Country extends Equatable {
   const Country({
     required this.name,
     required this.flag,
@@ -57,12 +56,5 @@ class Country {
   ];
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Country &&
-          runtimeType == other.runtimeType &&
-          isoCode == other.isoCode;
-
-  @override
-  int get hashCode => isoCode.hashCode;
+  List<Object?> get props => [isoCode];
 }

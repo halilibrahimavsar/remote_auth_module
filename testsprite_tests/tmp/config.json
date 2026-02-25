@@ -1,0 +1,18 @@
+{
+  "status": "commited",
+  "type": "backend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:8080//home/garuda/Masaüstü/remote_auth_module",
+  "backendAuthType": "public",
+  "executionArgs": {
+    "projectName": "remote_auth_module",
+    "projectPath": "/home/garuda/Masaüstü/remote_auth_module",
+    "testIds": [],
+    "additionalInstruction": "Focus on testing the core authentication logic and BLoC state transitions. Mock Firebase services appropriately as this is a library test environment.",
+    "envs": {
+      "API_KEY": "sk-user-8zPnyDOsWKxoW28Wi2LCywIdaSnkWD-_Fc9OTZ2iIhQlFUF1bEu5wnZMqUbCwN3eQm40Q26-FYUFMzZbT1Uxqc1P6TEfAMv1M_fuHeeze1Vro4MuUOk3wxKkojL8ZcdfSjo"
+    }
+  },
+  "serverPort": 46637,
+  "proxy": "http://9c36aaf9-2aec-4620-be83-184c432e4ca0:WDrDyyn2A30DTQzJF8crtBn8B8ZLOSKH@tun.testsprite.com:8080"
+}

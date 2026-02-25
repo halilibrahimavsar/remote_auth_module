@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:remote_auth_module/src/bloc/auth_bloc.dart';
+import 'package:remote_auth_module/src/presentation/bloc/auth_bloc.dart';
 import 'package:remote_auth_module/src/domain/entities/auth_user.dart';
 import 'package:remote_auth_module/src/presentation/pages/email_verification_page.dart';
 import 'package:remote_auth_module/src/presentation/pages/forgot_password_page.dart';

@@ -49,18 +49,22 @@ class AuthInputField extends StatelessWidget {
         keyboardType: keyboardType,
         onChanged: onChanged,
         inputFormatters: inputFormatters,
-        style: TextStyle(color: colorScheme.onPrimary),
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(color: colorScheme.onPrimary),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(
+          labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: colorScheme.onPrimary.withValues(alpha: 0.72),
           ),
           hintText: hintText,
-          hintStyle: TextStyle(
+          hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: colorScheme.onPrimary.withValues(alpha: 0.4),
           ),
           errorText: errorText,
-          errorStyle: TextStyle(color: colorScheme.error),
+          errorStyle: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: colorScheme.error),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,

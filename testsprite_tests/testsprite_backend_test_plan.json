@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "post auth register with new email",
+    "description": "Test the POST /auth/register endpoint with a new email and password to ensure it returns 201 status with userId and emailVerified false."
+  },
+  {
+    "id": "TC002",
+    "title": "post auth register with existing email",
+    "description": "Test the POST /auth/register endpoint with an already registered email to verify it returns 409 status with error 'email_already_exists'."
+  },
+  {
+    "id": "TC003",
+    "title": "post auth login with correct credentials",
+    "description": "Test the POST /auth/login endpoint with valid email and password to ensure it returns 200 status with token and refreshToken."
+  },
+  {
+    "id": "TC004",
+    "title": "post auth login with incorrect password",
+    "description": "Test the POST /auth/login endpoint with valid email but incorrect password to verify it returns 401 status with error 'invalid_credentials'."
+  },
+  {
+    "id": "TC005",
+    "title": "post auth login with unverified email",
+    "description": "Test the POST /auth/login endpoint for a user with emailVerified false to ensure it returns 200 status with token and emailVerificationRequired flag true."
+  },
+  {
+    "id": "TC006",
+    "title": "post auth google with valid id token",
+    "description": "Test the POST /auth/google endpoint with a valid Google id_token to verify it returns 200 status with token, provider as 'google', and userId."
+  },
+  {
+    "id": "TC007",
+    "title": "post auth google with invalid id token",
+    "description": "Test the POST /auth/google endpoint with an invalid or expired id_token to ensure it returns 401 status with error 'invalid_oauth_token'."
+  },
+  {
+    "id": "TC008",
+    "title": "post auth google on web without configuration",
+    "description": "Test the POST /auth/google endpoint on web platform without proper client configuration (missing serverClientId) to verify it returns 400 status with error 'google_signin_not_configured'."
+  },
+  {
+    "id": "TC009",
+    "title": "post auth phone verify with valid phone number",
+    "description": "Test the POST /auth/phone/verify endpoint with a valid phone number to ensure it returns 200 status with verificationId and ttlSeconds indicating SMS sent."
+  },
+  {
+    "id": "TC010",
+    "title": "post auth phone verify with invalid phone number",
+    "description": "Test the POST /auth/phone/verify endpoint with an invalid phone number format to verify it returns 400 status with error 'invalid_phone_number'."
+  }
+]
