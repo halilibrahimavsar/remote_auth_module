@@ -97,6 +97,23 @@ class ScenarioDashboard extends StatelessWidget {
             color: const Color(0xFFFF2A5F),
             onTap: () => onSelect(7),
           ),
+          const SizedBox(height: 16),
+          ScenarioCard(
+            title: '🌿 Zen Template',
+            description: 'Minimalist, calm, and nature-inspired design.',
+            icon: Icons.spa,
+            color: const Color(0xFF6B705C),
+            onTap: () => onSelect(8),
+          ),
+          const SizedBox(height: 16),
+          ScenarioCard(
+            title: '🕹️ Retro Template',
+            description:
+                '8-bit aesthetic with CRT scanlines and glitch effects.',
+            icon: Icons.videogame_asset,
+            color: const Color(0xFF00FF00),
+            onTap: () => onSelect(9),
+          ),
         ],
       ),
     );

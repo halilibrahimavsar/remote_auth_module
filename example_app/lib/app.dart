@@ -131,6 +131,12 @@ class _ExampleAppState extends State<ExampleApp> {
                 _buildDrawerItem('⚡ Neon Template', Icons.bolt, 5),
                 _buildDrawerItem('✨ Nova Template', Icons.nights_stay, 6),
                 _buildDrawerItem('💎 Prisma Template', Icons.view_in_ar, 7),
+                _buildDrawerItem('🌿 Zen Template', Icons.spa, 8),
+                _buildDrawerItem(
+                  '🕹️ Retro Template',
+                  Icons.videogame_asset,
+                  9,
+                ),
                 const Divider(),
                 _buildDrawerItem(
                   'Manual Integration',
@@ -224,6 +230,13 @@ class _ExampleAppState extends State<ExampleApp> {
         return NovaAuthFlow(config: config, authenticatedBuilder: _homeBuilder);
       case 7:
         return PrismaAuthFlow(
+          config: config,
+          authenticatedBuilder: _homeBuilder,
+        );
+      case 8:
+        return ZenAuthFlow(config: config, authenticatedBuilder: _homeBuilder);
+      case 9:
+        return RetroAuthFlow(
           config: config,
           authenticatedBuilder: _homeBuilder,
         );
