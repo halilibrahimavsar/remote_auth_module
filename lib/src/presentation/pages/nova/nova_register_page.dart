@@ -5,8 +5,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:remote_auth_module/src/presentation/bloc/auth_bloc.dart';
-
 import 'package:remote_auth_module/src/presentation/templates/auth_template_config.dart';
+import 'package:remote_auth_module/src/presentation/widgets/phone_auth_dialog.dart';
 
 class NovaRegisterPage extends StatefulWidget {
   const NovaRegisterPage({
@@ -403,7 +403,14 @@ class _NovaRegisterPageState extends State<NovaRegisterPage>
               _NovaSocialButton(
                 icon: Icons.phone_android,
                 onTap: () {
-                  // TODO: Phone auth
+                  showDialog<void>(
+                    context: context,
+                    builder:
+                        (_) => BlocProvider.value(
+                          value: context.read<AuthBloc>(),
+                          child: const PhoneAuthDialog(),
+                        ),
+                  );
                 },
               ),
             if (widget.config.showPhoneSignIn &&

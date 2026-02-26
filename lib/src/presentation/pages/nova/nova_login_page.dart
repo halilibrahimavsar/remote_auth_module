@@ -5,8 +5,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:remote_auth_module/src/presentation/bloc/auth_bloc.dart';
-
 import 'package:remote_auth_module/src/presentation/templates/auth_template_config.dart';
+import 'package:remote_auth_module/src/presentation/widgets/phone_auth_dialog.dart';
 
 class NovaLoginPage extends StatefulWidget {
   const NovaLoginPage({
@@ -175,7 +175,10 @@ class _NovaLoginPageState extends State<NovaLoginPage>
       children: [
         Text(
           'New roughly here?',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.5),
+            fontSize: 14,
+          ),
         ),
         TextButton(
           onPressed: widget.onRegisterTap,
@@ -198,7 +201,10 @@ class _NovaLoginPageState extends State<NovaLoginPage>
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.08),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
@@ -349,7 +355,9 @@ class _NovaLoginPageState extends State<NovaLoginPage>
       children: [
         Row(
           children: [
-            Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
+            Expanded(
+              child: Divider(color: Colors.white.withValues(alpha: 0.1)),
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
@@ -361,7 +369,9 @@ class _NovaLoginPageState extends State<NovaLoginPage>
                 ),
               ),
             ),
-            Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
+            Expanded(
+              child: Divider(color: Colors.white.withValues(alpha: 0.1)),
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -384,7 +394,14 @@ class _NovaLoginPageState extends State<NovaLoginPage>
               _NovaSocialButton(
                 icon: Icons.phone_android,
                 onTap: () {
-                  // TODO: Phone auth
+                  showDialog<void>(
+                    context: context,
+                    builder:
+                        (_) => BlocProvider.value(
+                          value: context.read<AuthBloc>(),
+                          child: const PhoneAuthDialog(),
+                        ),
+                  );
                 },
               ),
             if (widget.config.showPhoneSignIn &&

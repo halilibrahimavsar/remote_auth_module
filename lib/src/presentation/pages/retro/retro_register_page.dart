@@ -1,6 +1,5 @@
 // ignore_for_file: lines_longer_than_80_chars
 
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:remote_auth_module/src/core/utils/auth_validators.dart';

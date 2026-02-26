@@ -63,8 +63,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '789348142189',
     projectId: 'remote-auth-module',
     storageBucket: 'remote-auth-module.firebasestorage.app',
-    androidClientId: '789348142189-3geilgu8n4rhcpin94vd8fa0alh95ivi.apps.googleusercontent.com',
-    iosClientId: '789348142189-ue8gep8df5eb6b8rm5mirqb0cfirivhk.apps.googleusercontent.com',
+    androidClientId:
+        '789348142189-3geilgu8n4rhcpin94vd8fa0alh95ivi.apps.googleusercontent.com',
+    iosClientId:
+        '789348142189-ue8gep8df5eb6b8rm5mirqb0cfirivhk.apps.googleusercontent.com',
     iosBundleId: 'com.example.exampleApp',
   );
 
@@ -74,8 +76,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '789348142189',
     projectId: 'remote-auth-module',
     storageBucket: 'remote-auth-module.firebasestorage.app',
-    androidClientId: '789348142189-3geilgu8n4rhcpin94vd8fa0alh95ivi.apps.googleusercontent.com',
-    iosClientId: '789348142189-ue8gep8df5eb6b8rm5mirqb0cfirivhk.apps.googleusercontent.com',
+    androidClientId:
+        '789348142189-3geilgu8n4rhcpin94vd8fa0alh95ivi.apps.googleusercontent.com',
+    iosClientId:
+        '789348142189-ue8gep8df5eb6b8rm5mirqb0cfirivhk.apps.googleusercontent.com',
     iosBundleId: 'com.example.exampleApp',
   );
 
@@ -87,5 +91,4 @@ class DefaultFirebaseOptions {
     authDomain: 'remote-auth-module.firebaseapp.com',
     storageBucket: 'remote-auth-module.firebasestorage.app',
   );
-
 }

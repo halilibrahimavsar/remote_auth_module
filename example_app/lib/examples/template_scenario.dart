@@ -16,9 +16,9 @@ class TemplateScenario extends StatelessWidget {
       // authBloc: getIt<AuthBloc>(),
       loginTitle: 'Secure Portal',
       logo: const FlutterLogo(size: 64),
-      showGoogleSignIn: true,
-      showPhoneSignIn: true,
-      showAnonymousSignIn: true,
+      showGoogleSignIn: false,
+      showPhoneSignIn: false,
+      showAnonymousSignIn: false,
 
       // This builder is called once the user is successfully authenticated.
       // This is where you transition to your main app content.

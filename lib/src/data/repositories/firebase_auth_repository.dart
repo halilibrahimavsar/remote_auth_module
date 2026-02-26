@@ -386,6 +386,16 @@ class FirebaseAuthRepository implements AuthRepository {
 
   Future<void> _syncUserDocument(fb.User user) async {
     if (_createUserCollection && _firestoreService != null) {
+      // Guard: verify user is still the current authenticated user.
+      // This prevents PERMISSION_DENIED errors when a sign-out races
+      // with a pending Firestore sync.
+      if (_auth.currentUser?.uid != user.uid) {
+        AppLogger.d(
+          '[FirebaseAuthRepository] Skipping user sync — user '
+          '${user.uid} is no longer the current user.',
+        );
+        return;
+      }
       await _firestoreService.createOrUpdateUserDocument(user);
     }
   }
