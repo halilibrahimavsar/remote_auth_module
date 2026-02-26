@@ -196,9 +196,9 @@ class _ExampleAppState extends State<ExampleApp> {
 
     // Shared config — toggle features on/off here
     const config = AuthTemplateConfig(
-      showGoogleSignIn: true,
-      showPhoneSignIn: true,
-      showAnonymousSignIn: true,
+      showGoogleSignIn: false,
+      showPhoneSignIn: false,
+      showAnonymousSignIn: false,
       showRegister: true,
       showForgotPassword: true,
       showRememberMe: true,
@@ -208,9 +208,9 @@ class _ExampleAppState extends State<ExampleApp> {
       case 0:
         return RemoteAuthFlow(
           loginTitle: 'Auth Flow Template',
-          showGoogleSignIn: true,
-          showPhoneSignIn: true,
-          showAnonymousSignIn: true,
+          showGoogleSignIn: false,
+          showPhoneSignIn: false,
+          showAnonymousSignIn: false,
           authenticatedBuilder: _homeBuilder,
         );
       case 1:
