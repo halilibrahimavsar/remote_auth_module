@@ -52,4 +52,33 @@ class AuthTemplateConfig {
 
   /// Optional logo widget shown at the top of the login page.
   final Widget? logo;
+
+  /// Creates a copy of this config but with the given fields replaced with the new values.
+  AuthTemplateConfig copyWith({
+    bool? showGoogleSignIn,
+    bool? showPhoneSignIn,
+    bool? showAnonymousSignIn,
+    bool? showRegister,
+    bool? showForgotPassword,
+    bool? showRememberMe,
+    String? loginTitle,
+    String? loginSubtitle,
+    String? registerTitle,
+    String? registerSubtitle,
+    Widget? logo,
+  }) {
+    return AuthTemplateConfig(
+      showGoogleSignIn: showGoogleSignIn ?? this.showGoogleSignIn,
+      showPhoneSignIn: showPhoneSignIn ?? this.showPhoneSignIn,
+      showAnonymousSignIn: showAnonymousSignIn ?? this.showAnonymousSignIn,
+      showRegister: showRegister ?? this.showRegister,
+      showForgotPassword: showForgotPassword ?? this.showForgotPassword,
+      showRememberMe: showRememberMe ?? this.showRememberMe,
+      loginTitle: loginTitle ?? this.loginTitle,
+      loginSubtitle: loginSubtitle ?? this.loginSubtitle,
+      registerTitle: registerTitle ?? this.registerTitle,
+      registerSubtitle: registerSubtitle ?? this.registerSubtitle,
+      logo: logo ?? this.logo,
+    );
+  }
 }

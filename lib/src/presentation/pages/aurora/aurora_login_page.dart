@@ -612,7 +612,7 @@ class _AuroraPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final t = progress * 2 * pi;
 
-    // Paint 3 large soft gradient blobs that drift
+    // 4 large soft gradient blobs that drift
     _drawBlob(
       canvas,
       size,
@@ -654,6 +654,48 @@ class _AuroraPainter extends CustomPainter {
         const Color(0xFF00B4D8).withValues(alpha: 0.0),
       ],
     );
+
+    // 4th blob — warm pink for richer palette
+    _drawBlob(
+      canvas,
+      size,
+      center: Offset(
+        size.width * (0.25 + 0.18 * cos(t * 0.9)),
+        size.height * (0.8 + 0.06 * sin(t * 1.1)),
+      ),
+      radius: size.width * 0.45,
+      colors: [
+        const Color(0xFFFF6B9D).withValues(alpha: 0.14),
+        const Color(0xFFFF6B9D).withValues(alpha: 0.0),
+      ],
+    );
+
+    // Floating light orbs
+    _drawOrbs(canvas, size, t);
+  }
+
+  void _drawOrbs(Canvas canvas, Size size, double t) {
+    final rng = Random(42);
+    const orbCount = 12;
+    for (var i = 0; i < orbCount; i++) {
+      final seed = rng.nextDouble();
+      final speed = 0.3 + seed * 0.7;
+      final orbRadius = 2.0 + seed * 4.0;
+      final cx =
+          size.width * ((rng.nextDouble() + 0.08 * sin(t * speed + i)) % 1.0);
+      final cy =
+          size.height *
+          ((rng.nextDouble() + 0.06 * cos(t * speed * 0.8 + i * 0.5)) % 1.0);
+      final alpha = 0.15 + 0.2 * sin(t * 1.5 + i * 0.8).abs();
+      final paint =
+          Paint()
+            ..color = (i.isEven
+                    ? const Color(0xFF00E5CC)
+                    : const Color(0xFF7B2FF7))
+                .withValues(alpha: alpha)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+      canvas.drawCircle(Offset(cx, cy), orbRadius, paint);
+    }
   }
 
   void _drawBlob(
@@ -679,7 +721,7 @@ class _AuroraPainter extends CustomPainter {
 // ---------------------------------------------------------------------------
 // Aurora Text Field
 // ---------------------------------------------------------------------------
-class _AuroraTextField extends StatelessWidget {
+class _AuroraTextField extends StatefulWidget {
   const _AuroraTextField({
     required this.controller,
     required this.label,
@@ -697,20 +739,80 @@ class _AuroraTextField extends StatelessWidget {
   final TextInputType? keyboardType;
 
   @override
+  State<_AuroraTextField> createState() => _AuroraTextFieldState();
+}
+
+class _AuroraTextFieldState extends State<_AuroraTextField>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _focusGlow;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusGlow = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        _focusGlow.forward();
+      } else {
+        _focusGlow.reverse();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusGlow.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: Colors.white.withValues(alpha: 0.06),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-      ),
+    return AnimatedBuilder(
+      animation: _focusGlow,
+      builder: (context, child) {
+        final glow = _focusGlow.value;
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: Colors.white.withValues(alpha: 0.06 + glow * 0.04),
+            border: Border.all(
+              color:
+                  Color.lerp(
+                    Colors.white.withValues(alpha: 0.12),
+                    const Color(0xFF00E5CC).withValues(alpha: 0.6),
+                    glow,
+                  )!,
+              width: 1.0 + glow * 0.5,
+            ),
+            boxShadow:
+                glow > 0.01
+                    ? [
+                      BoxShadow(
+                        color: const Color(
+                          0xFF00E5CC,
+                        ).withValues(alpha: 0.15 * glow),
+                        blurRadius: 12 * glow,
+                        spreadRadius: 1 * glow,
+                      ),
+                    ]
+                    : null,
+          ),
+          child: child,
+        );
+      },
       child: TextField(
-        controller: controller,
-        obscureText: obscureText,
-        keyboardType: keyboardType,
+        controller: widget.controller,
+        focusNode: _focusNode,
+        obscureText: widget.obscureText,
+        keyboardType: widget.keyboardType,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
-          labelText: label,
+          labelText: widget.label,
           labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
@@ -718,10 +820,10 @@ class _AuroraTextField extends StatelessWidget {
             vertical: 16,
           ),
           prefixIcon: Icon(
-            icon,
+            widget.icon,
             color: const Color(0xFF00E5CC).withValues(alpha: 0.8),
           ),
-          suffixIcon: suffixIcon,
+          suffixIcon: widget.suffixIcon,
         ),
       ),
     );

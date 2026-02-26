@@ -21,9 +21,11 @@ class LoginPage extends StatefulWidget {
     this.onVerificationRequired,
     this.logo,
     this.title = 'Welcome Back',
+    this.subtitle = 'Sign in to continue',
     this.showGoogleSignIn = true,
     this.showPhoneSignIn = true,
     this.showAnonymousSignIn = true,
+    this.showRememberMe = true,
   });
   final VoidCallback? onRegisterTap;
   final VoidCallback? onForgotPasswordTap;
@@ -31,9 +33,11 @@ class LoginPage extends StatefulWidget {
   final void Function(AuthUser user)? onVerificationRequired;
   final Widget? logo;
   final String title;
+  final String subtitle;
   final bool showGoogleSignIn;
   final bool showPhoneSignIn;
   final bool showAnonymousSignIn;
+  final bool showRememberMe;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -139,7 +143,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Sign in to continue',
+                  widget.subtitle,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onPrimary.withValues(alpha: 0.72),
@@ -166,47 +170,65 @@ class _LoginPageState extends State<LoginPage> {
                       () =>
                           setState(() => _obscurePassword = !_obscurePassword),
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    InkWell(
-                      onTap: () => setState(() => _rememberMe = !_rememberMe),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Row(
-                        children: [
-                          Checkbox(
-                            value: _rememberMe,
-                            onChanged:
-                                (_) =>
-                                    setState(() => _rememberMe = !_rememberMe),
-                            activeColor: colorScheme.onPrimary,
-                            checkColor: colorScheme.primary,
-                          ),
-                          Text(
-                            'Remember me',
-                            style: TextStyle(
-                              color: colorScheme.onPrimary.withValues(
-                                alpha: 0.84,
+                if (widget.showRememberMe) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: () => setState(() => _rememberMe = !_rememberMe),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Row(
+                          children: [
+                            Checkbox(
+                              value: _rememberMe,
+                              onChanged:
+                                  (_) => setState(
+                                    () => _rememberMe = !_rememberMe,
+                                  ),
+                              activeColor: colorScheme.onPrimary,
+                              checkColor: colorScheme.primary,
+                            ),
+                            Text(
+                              'Remember me',
+                              style: TextStyle(
+                                color: colorScheme.onPrimary.withValues(
+                                  alpha: 0.84,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
-                    if (widget.onForgotPasswordTap != null)
-                      TextButton(
-                        onPressed: widget.onForgotPasswordTap,
-                        child: Text(
-                          'Forgot password?',
-                          style: TextStyle(
-                            color: colorScheme.onPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          ],
                         ),
                       ),
-                  ],
-                ),
+                      const Spacer(),
+                      if (widget.onForgotPasswordTap != null)
+                        TextButton(
+                          onPressed: widget.onForgotPasswordTap,
+                          child: Text(
+                            'Forgot password?',
+                            style: TextStyle(
+                              color: colorScheme.onPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ] else if (widget.onForgotPasswordTap != null) ...[
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: widget.onForgotPasswordTap,
+                      child: Text(
+                        'Forgot password?',
+                        style: TextStyle(
+                          color: colorScheme.onPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 AuthActionButton(
                   label: 'Sign In',

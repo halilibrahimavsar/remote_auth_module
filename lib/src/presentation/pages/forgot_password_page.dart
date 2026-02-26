@@ -9,8 +9,15 @@ import 'package:remote_auth_module/src/presentation/widgets/auth_input_field.dar
 import 'package:remote_auth_module/src/presentation/widgets/auth_status_banner.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
-  const ForgotPasswordPage({super.key, this.onResetSent});
+  const ForgotPasswordPage({
+    super.key,
+    this.onResetSent,
+    this.title = 'Reset Password',
+    this.subtitle = "Enter your email and we'll send reset instructions.",
+  });
   final VoidCallback? onResetSent;
+  final String title;
+  final String subtitle;
 
   @override
   State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
@@ -72,7 +79,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Reset Password',
+                  widget.title,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: colorScheme.onPrimary,
@@ -81,7 +88,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "Enter your email and we'll send reset instructions.",
+                  widget.subtitle,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onPrimary.withValues(alpha: 0.72),

@@ -19,12 +19,16 @@ class RegisterPage extends StatefulWidget {
     this.onLoginTap,
     this.onAuthenticated,
     this.onVerificationRequired,
+    this.logo,
     this.title = 'Create Account',
+    this.subtitle = 'Create your account to continue',
   });
   final VoidCallback? onLoginTap;
   final void Function(AuthUser user)? onAuthenticated;
   final void Function(AuthUser user)? onVerificationRequired;
+  final Widget? logo;
   final String title;
+  final String subtitle;
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -149,7 +153,7 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Create your account to continue',
+          widget.subtitle,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: colorScheme.onPrimary.withValues(alpha: 0.72),

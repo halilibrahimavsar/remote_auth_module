@@ -170,7 +170,7 @@ class _RetroLoginPageState extends State<RetroLoginPage>
               ),
 
               // CRT Scanlines & TV Noise
-              const _RetroTVOverlay(),
+              _RetroTVOverlay(controller: _bgController),
             ],
           ),
         );
@@ -391,16 +391,42 @@ class _GridPainter extends CustomPainter {
     }
 
     // Horizontal lines (scrolling)
-    final lineCount = 15;
+    const lineCount = 15;
     for (var i = 0; i < lineCount; i++) {
       final t = (i + progress) / lineCount;
       final y = vanishingPoint.dy + (size.height - vanishingPoint.dy) * t * t;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
+
+    // Pixel noise dots
+    final rng = _seededRandom(progress);
+    final noisePaint = Paint();
+    for (var i = 0; i < 30; i++) {
+      final x = rng.nextDouble() * size.width;
+      final y = rng.nextDouble() * size.height;
+      noisePaint.color = (i.isEven
+              ? const Color(0xFFFF00FF)
+              : const Color(0xFF00FFFF))
+          .withValues(alpha: 0.03 + rng.nextDouble() * 0.06);
+      canvas.drawRect(Rect.fromLTWH(x, y, 2, 2), noisePaint);
+    }
   }
+
+  // Deterministic-ish RNG from progress
+  _SimpleRng _seededRandom(double p) => _SimpleRng((p * 10000).toInt());
 
   @override
   bool shouldRepaint(_GridPainter oldDelegate) => true;
+}
+
+/// Minimal seeded RNG to avoid importing dart:math Random everywhere.
+class _SimpleRng {
+  _SimpleRng(this._seed);
+  int _seed;
+  double nextDouble() {
+    _seed = (_seed * 1103515245 + 12345) & 0x7fffffff;
+    return _seed / 0x7fffffff;
+  }
 }
 
 class _RetroHorizon extends StatelessWidget {
@@ -465,7 +491,7 @@ class _RetroGlassContainer extends StatelessWidget {
   }
 }
 
-class _RetroField extends StatelessWidget {
+class _RetroField extends StatefulWidget {
   const _RetroField({
     required this.controller,
     required this.label,
@@ -481,12 +507,44 @@ class _RetroField extends StatelessWidget {
   final Widget? suffix;
 
   @override
+  State<_RetroField> createState() => _RetroFieldState();
+}
+
+class _RetroFieldState extends State<_RetroField>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _focusAnim;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        _focusAnim.forward();
+      } else {
+        _focusAnim.reverse();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusAnim.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '> $label',
+          '> ${widget.label}',
           style: const TextStyle(
             color: Color(0xFF00FF00),
             fontSize: 10,
@@ -495,20 +553,45 @@ class _RetroField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.3),
-              width: 2,
-            ),
-          ),
+        AnimatedBuilder(
+          animation: _focusAnim,
+          builder: (context, child) {
+            final v = _focusAnim.value;
+            return Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                border: Border.all(
+                  color:
+                      Color.lerp(
+                        Colors.white.withValues(alpha: 0.3),
+                        const Color(0xFF00FF00),
+                        v,
+                      )!,
+                  width: 2,
+                ),
+                boxShadow:
+                    v > 0.01
+                        ? [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF00FF00,
+                            ).withValues(alpha: 0.2 * v),
+                            blurRadius: 8 * v,
+                            spreadRadius: 1 * v,
+                          ),
+                        ]
+                        : null,
+              ),
+              child: child,
+            );
+          },
           child: Row(
             children: [
               Expanded(
                 child: TextField(
-                  controller: controller,
-                  obscureText: obscureText,
+                  controller: widget.controller,
+                  focusNode: _focusNode,
+                  obscureText: widget.obscureText,
                   cursorColor: const Color(0xFF00FF00),
                   style: const TextStyle(
                     color: Colors.white,
@@ -516,7 +599,7 @@ class _RetroField extends StatelessWidget {
                     fontSize: 13,
                   ),
                   decoration: InputDecoration(
-                    hintText: placeholder,
+                    hintText: widget.placeholder,
                     hintStyle: TextStyle(
                       color: Colors.white.withValues(alpha: 0.2),
                     ),
@@ -528,10 +611,10 @@ class _RetroField extends StatelessWidget {
                   ),
                 ),
               ),
-              if (suffix != null)
+              if (widget.suffix != null)
                 Padding(
                   padding: const EdgeInsets.only(right: 12),
-                  child: suffix,
+                  child: widget.suffix,
                 ),
             ],
           ),
@@ -541,7 +624,7 @@ class _RetroField extends StatelessWidget {
   }
 }
 
-class _RetroMainButton extends StatelessWidget {
+class _RetroMainButton extends StatefulWidget {
   const _RetroMainButton({
     required this.label,
     required this.onPressed,
@@ -553,22 +636,45 @@ class _RetroMainButton extends StatelessWidget {
   final bool isLoading;
 
   @override
+  State<_RetroMainButton> createState() => _RetroMainButtonState();
+}
+
+class _RetroMainButtonState extends State<_RetroMainButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _blink;
+
+  @override
+  void initState() {
+    super.initState();
+    _blink = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _blink.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: isLoading ? null : onPressed,
+        onTap: widget.isLoading ? null : widget.onPressed,
         child: Container(
           height: 54,
-          decoration: BoxDecoration(
-            color: const Color(0xFF00FF00),
-            boxShadow: const [
+          decoration: const BoxDecoration(
+            color: Color(0xFF00FF00),
+            boxShadow: [
               BoxShadow(color: Color(0xFF00FFFF), offset: Offset(4, 4)),
             ],
           ),
           child: Center(
             child:
-                isLoading
+                widget.isLoading
                     ? const SizedBox(
                       width: 24,
                       height: 24,
@@ -577,14 +683,20 @@ class _RetroMainButton extends StatelessWidget {
                         strokeWidth: 2,
                       ),
                     )
-                    : Text(
-                      label,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w900,
-                        fontFamily: 'monospace',
-                        fontSize: 14,
-                      ),
+                    : AnimatedBuilder(
+                      animation: _blink,
+                      builder: (context, _) {
+                        final cursor = _blink.value > 0.5 ? '█' : ' ';
+                        return Text(
+                          '${widget.label}$cursor',
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'monospace',
+                            fontSize: 14,
+                          ),
+                        );
+                      },
                     ),
           ),
         ),
@@ -655,34 +767,46 @@ class _RetroErrorBanner extends StatelessWidget {
 }
 
 class _RetroTVOverlay extends StatelessWidget {
-  const _RetroTVOverlay();
+  const _RetroTVOverlay({required this.controller});
+  final AnimationController controller;
 
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: Stack(
-        children: [
-          // Scanlines
-          CustomPaint(painter: _ScanPainter(), size: Size.infinite),
-          // Vignette
-          Container(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.4),
-                ],
-                stops: const [0.7, 1.0],
+      child: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) {
+          return Stack(
+            children: [
+              // Scanlines + animated sweep
+              CustomPaint(
+                painter: _ScanPainter(sweepProgress: controller.value),
+                size: Size.infinite,
               ),
-            ),
-          ),
-        ],
+              // Vignette
+              Container(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.4),
+                    ],
+                    stops: const [0.7, 1.0],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
 class _ScanPainter extends CustomPainter {
+  _ScanPainter({this.sweepProgress = 0.0});
+  final double sweepProgress;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint =
@@ -693,8 +817,24 @@ class _ScanPainter extends CustomPainter {
     for (var i = 0.0; i < size.height; i += 3) {
       canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
     }
+
+    // Animated bright scanline sweep
+    final sweepY = sweepProgress * size.height;
+    final sweepPaint =
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.transparent,
+              Colors.white.withValues(alpha: 0.06),
+              Colors.transparent,
+            ],
+          ).createShader(Rect.fromLTWH(0, sweepY - 40, size.width, 80));
+    canvas.drawRect(Rect.fromLTWH(0, sweepY - 40, size.width, 80), sweepPaint);
   }
 
   @override
-  bool shouldRepaint(_ScanPainter oldDelegate) => false;
+  bool shouldRepaint(_ScanPainter oldDelegate) =>
+      oldDelegate.sweepProgress != sweepProgress;
 }

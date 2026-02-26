@@ -20,7 +20,7 @@ class ManualIntegrationScenario extends StatelessWidget {
         }
 
         if (state is AuthenticatedState) {
-          return CustomHomeScreen(user: state.user);
+          return const AuthManagerPage();
         }
 
         if (state is EmailVerificationRequiredState) {
@@ -78,6 +78,16 @@ class CustomHomeScreen extends StatelessWidget {
               style: const TextStyle(color: Colors.white70),
             ),
             const SizedBox(height: 32),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AuthManagerPage()),
+                );
+              },
+              icon: const Icon(Icons.manage_accounts),
+              label: const Text('Manage Account'),
+            ),
+            const SizedBox(height: 12),
             OutlinedButton(
               style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
               onPressed:

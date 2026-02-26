@@ -29,22 +29,22 @@ class _PrismaLoginPageState extends State<PrismaLoginPage>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  late AnimationController _sparkleController;
   late AnimationController _entranceController;
   static const _prismaDark = Color(0xFF111111);
   late AnimationController _blobController;
+  late AnimationController _shimmerController;
 
   @override
   void initState() {
     super.initState();
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-
     _blobController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 14),
+    )..repeat();
+
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
     )..repeat();
 
     _entranceController = AnimationController(
@@ -61,8 +61,8 @@ class _PrismaLoginPageState extends State<PrismaLoginPage>
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _sparkleController.dispose();
     _blobController.dispose();
+    _shimmerController.dispose();
     _entranceController.dispose();
     super.dispose();
   }
@@ -317,19 +317,28 @@ class _PrismaLoginPageState extends State<PrismaLoginPage>
   }
 
   Widget _buildSignInButton(bool isLoading, BuildContext context) {
-    return Container(
-      height: 60,
-      decoration: BoxDecoration(
-        color: _prismaDark,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: _prismaDark.withValues(alpha: 0.2),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+    return AnimatedBuilder(
+      animation: _shimmerController,
+      builder: (context, child) {
+        return Container(
+          height: 60,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              colors: const [_prismaDark, Color(0xFF333333), _prismaDark],
+              stops: [0.0, _shimmerController.value, 1.0],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _prismaDark.withValues(alpha: 0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
+          child: child,
+        );
+      },
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -630,7 +639,7 @@ class _BlobPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    // Draw 3 large blurry blobs
+    // Draw 4 large blurry blobs
     _drawBlob(
       canvas,
       center: Offset(w * (0.2 + 0.3 * sin(t)), h * (0.2 + 0.2 * cos(t * 1.3))),
@@ -656,6 +665,17 @@ class _BlobPainter extends CustomPainter {
       ),
       radius: w * 0.6,
       color: const Color(0xFFFFD700).withValues(alpha: 0.12),
+    );
+
+    // 4th blob — rich violet for depth
+    _drawBlob(
+      canvas,
+      center: Offset(
+        w * (0.3 + 0.25 * cos(t * 1.2)),
+        h * (0.6 + 0.15 * sin(t * 0.7)),
+      ),
+      radius: w * 0.5,
+      color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
     );
   }
 

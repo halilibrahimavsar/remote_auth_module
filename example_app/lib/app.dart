@@ -176,10 +176,26 @@ class _ExampleAppState extends State<ExampleApp> {
   }
 
   Widget _homeBuilder(BuildContext context, AuthUser user) {
-    return HomePage(
-      user: user,
-      onToggleTheme: _toggleTheme,
-      isDarkMode: _isDarkMode,
+    return AuthManagerPage(
+      additionalActions: [
+        AuthManagerAction(
+          icon: Icons.dashboard_outlined,
+          label: 'Custom App Dashboard',
+          subtitle: 'Visit the original home page',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder:
+                    (_) => HomePage(
+                      user: user,
+                      onToggleTheme: _toggleTheme,
+                      isDarkMode: _isDarkMode,
+                    ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -196,9 +212,9 @@ class _ExampleAppState extends State<ExampleApp> {
 
     // Shared config — toggle features on/off here
     const config = AuthTemplateConfig(
-      showGoogleSignIn: false,
-      showPhoneSignIn: false,
-      showAnonymousSignIn: false,
+      showGoogleSignIn: true,
+      showPhoneSignIn: true,
+      showAnonymousSignIn: true,
       showRegister: true,
       showForgotPassword: true,
       showRememberMe: true,
@@ -207,10 +223,7 @@ class _ExampleAppState extends State<ExampleApp> {
     switch (_currentScenario) {
       case 0:
         return RemoteAuthFlow(
-          loginTitle: 'Auth Flow Template',
-          showGoogleSignIn: false,
-          showPhoneSignIn: false,
-          showAnonymousSignIn: false,
+          config: config.copyWith(loginTitle: 'Auth Flow Template'),
           authenticatedBuilder: _homeBuilder,
         );
       case 1:

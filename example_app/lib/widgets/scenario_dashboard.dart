@@ -25,9 +25,9 @@ class ScenarioDashboard extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           ScenarioCard(
-            title: 'RemoteAuthFlow (Easy)',
+            title: 'RemoteAuthFlow (Full)',
             description:
-                'Zero-boilerplate. Handles all auth sub-pages automatically.',
+                'Hands-free auth flow + Premium Profile Management included.',
             icon: Icons.auto_fix_high,
             color: Colors.blue,
             onTap: () => onSelect(0),

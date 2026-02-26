@@ -8,6 +8,7 @@ import 'package:remote_auth_module/src/presentation/pages/email_verification_pag
 import 'package:remote_auth_module/src/presentation/pages/forgot_password_page.dart';
 import 'package:remote_auth_module/src/presentation/pages/login_page.dart';
 import 'package:remote_auth_module/src/presentation/pages/register_page.dart';
+import 'package:remote_auth_module/src/presentation/templates/auth_template_config.dart';
 
 /// A drop-in, ready-to-use template that manages the entire authentication flow.
 ///
@@ -33,21 +34,13 @@ class RemoteAuthFlow extends StatelessWidget {
   const RemoteAuthFlow({
     required this.authenticatedBuilder,
     this.authBloc,
-    this.logo,
-    this.loginTitle = 'Welcome Back',
-    this.showGoogleSignIn = true,
-    this.showPhoneSignIn = true,
-    this.showAnonymousSignIn = true,
+    this.config = const AuthTemplateConfig(),
     super.key,
   });
   final AuthBloc? authBloc;
   final Widget Function(BuildContext context, AuthUser user)
   authenticatedBuilder;
-  final Widget? logo;
-  final String loginTitle;
-  final bool showGoogleSignIn;
-  final bool showPhoneSignIn;
-  final bool showAnonymousSignIn;
+  final AuthTemplateConfig config;
 
   @override
   Widget build(BuildContext context) {
@@ -56,22 +49,14 @@ class RemoteAuthFlow extends StatelessWidget {
         value: authBloc!,
         child: _AuthFlowGate(
           authenticatedBuilder: authenticatedBuilder,
-          logo: logo,
-          loginTitle: loginTitle,
-          showGoogleSignIn: showGoogleSignIn,
-          showPhoneSignIn: showPhoneSignIn,
-          showAnonymousSignIn: showAnonymousSignIn,
+          config: config,
         ),
       );
     }
 
     return _AuthFlowGate(
       authenticatedBuilder: authenticatedBuilder,
-      logo: logo,
-      loginTitle: loginTitle,
-      showGoogleSignIn: showGoogleSignIn,
-      showPhoneSignIn: showPhoneSignIn,
-      showAnonymousSignIn: showAnonymousSignIn,
+      config: config,
     );
   }
 }
@@ -79,19 +64,11 @@ class RemoteAuthFlow extends StatelessWidget {
 class _AuthFlowGate extends StatefulWidget {
   const _AuthFlowGate({
     required this.authenticatedBuilder,
-    required this.loginTitle,
-    required this.showGoogleSignIn,
-    required this.showPhoneSignIn,
-    required this.showAnonymousSignIn,
-    this.logo,
+    required this.config,
   });
   final Widget Function(BuildContext context, AuthUser user)
   authenticatedBuilder;
-  final Widget? logo;
-  final String loginTitle;
-  final bool showGoogleSignIn;
-  final bool showPhoneSignIn;
-  final bool showAnonymousSignIn;
+  final AuthTemplateConfig config;
 
   @override
   State<_AuthFlowGate> createState() => _AuthFlowGateState();
@@ -142,11 +119,13 @@ class _AuthFlowGateState extends State<_AuthFlowGate> {
         // Return LoginPage as default for UnauthenticatedState, AuthErrorState
         // or AuthLoadingState without prior content.
         return LoginPage(
-          logo: widget.logo,
-          title: widget.loginTitle,
-          showGoogleSignIn: widget.showGoogleSignIn,
-          showPhoneSignIn: widget.showPhoneSignIn,
-          showAnonymousSignIn: widget.showAnonymousSignIn,
+          logo: widget.config.logo,
+          title: widget.config.loginTitle,
+          subtitle: widget.config.loginSubtitle,
+          showGoogleSignIn: widget.config.showGoogleSignIn,
+          showPhoneSignIn: widget.config.showPhoneSignIn,
+          showAnonymousSignIn: widget.config.showAnonymousSignIn,
+          showRememberMe: widget.config.showRememberMe,
           onRegisterTap: () {
             Navigator.of(context).push(
               MaterialPageRoute<void>(
@@ -155,6 +134,8 @@ class _AuthFlowGateState extends State<_AuthFlowGate> {
                       value: context.read<AuthBloc>(),
                       child: RegisterPage(
                         onLoginTap: () => Navigator.of(context).pop(),
+                        title: widget.config.registerTitle,
+                        subtitle: widget.config.registerSubtitle,
                       ),
                     ),
               ),
@@ -166,7 +147,7 @@ class _AuthFlowGateState extends State<_AuthFlowGate> {
                 builder:
                     (_) => BlocProvider.value(
                       value: context.read<AuthBloc>(),
-                      child: const ForgotPasswordPage(),
+                      child: ForgotPasswordPage(title: 'Reset Password'),
                     ),
               ),
             );

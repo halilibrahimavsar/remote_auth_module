@@ -580,6 +580,38 @@ class _WavePainter extends CustomPainter {
       20,
       pi / 3,
     );
+    // Wave 3 (subtle deep)
+    _drawWave(
+      canvas,
+      size,
+      t * 0.7,
+      0.78,
+      color2.withValues(alpha: 0.15),
+      15,
+      pi / 2,
+    );
+
+    // Foam bubble particles along the wave crest
+    _drawFoamBubbles(canvas, size, t);
+  }
+
+  void _drawFoamBubbles(Canvas canvas, Size size, double t) {
+    final rng = Random(99);
+    const bubbleCount = 18;
+    for (var i = 0; i < bubbleCount; i++) {
+      final xFract = rng.nextDouble();
+      final x = size.width * xFract;
+      final baseY = size.height * 0.85 + 30 * sin((xFract * 2 * pi) + t);
+      final bubbleY =
+          baseY - 8 - rng.nextDouble() * 40 - 12 * sin(t * 2 + i * 0.7).abs();
+      final radius = 1.5 + rng.nextDouble() * 3.5;
+      final alpha = 0.15 + 0.25 * sin(t * 1.8 + i).abs();
+      final paint =
+          Paint()
+            ..color = Colors.white.withValues(alpha: alpha)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+      canvas.drawCircle(Offset(x, bubbleY), radius, paint);
+    }
   }
 
   void _drawWave(
@@ -619,7 +651,7 @@ class _WavePainter extends CustomPainter {
 // ---------------------------------------------------------------------------
 // Wave Text Field — Material 3 outlined style
 // ---------------------------------------------------------------------------
-class _WaveTextField extends StatelessWidget {
+class _WaveTextField extends StatefulWidget {
   const _WaveTextField({
     required this.controller,
     required this.label,
@@ -639,26 +671,84 @@ class _WaveTextField extends StatelessWidget {
   final TextInputType? keyboardType;
 
   @override
+  State<_WaveTextField> createState() => _WaveTextFieldState();
+}
+
+class _WaveTextFieldState extends State<_WaveTextField>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _focusAnim;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        _focusAnim.forward();
+      } else {
+        _focusAnim.reverse();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusAnim.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: accentColor.withValues(alpha: 0.7)),
-        suffixIcon: suffixIcon,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: accentColor, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
+    return AnimatedBuilder(
+      animation: _focusAnim,
+      builder: (context, child) {
+        final v = _focusAnim.value;
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            boxShadow:
+                v > 0.01
+                    ? [
+                      BoxShadow(
+                        color: widget.accentColor.withValues(alpha: 0.12 * v),
+                        blurRadius: 10 * v,
+                        spreadRadius: 1 * v,
+                      ),
+                    ]
+                    : null,
+          ),
+          child: child,
+        );
+      },
+      child: TextField(
+        controller: widget.controller,
+        focusNode: _focusNode,
+        obscureText: widget.obscureText,
+        keyboardType: widget.keyboardType,
+        decoration: InputDecoration(
+          labelText: widget.label,
+          prefixIcon: Icon(
+            widget.icon,
+            color: widget.accentColor.withValues(alpha: 0.7),
+          ),
+          suffixIcon: widget.suffixIcon,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: widget.accentColor, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
         ),
       ),
     );
@@ -668,7 +758,7 @@ class _WaveTextField extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Wave CTA Button
 // ---------------------------------------------------------------------------
-class _WaveButton extends StatelessWidget {
+class _WaveButton extends StatefulWidget {
   const _WaveButton({
     required this.label,
     required this.color,
@@ -682,33 +772,80 @@ class _WaveButton extends StatelessWidget {
   final IconData? icon;
 
   @override
+  State<_WaveButton> createState() => _WaveButtonState();
+}
+
+class _WaveButtonState extends State<_WaveButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _shimmer;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmer = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _shimmer.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          elevation: 4,
-          shadowColor: color.withValues(alpha: 0.3),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
+    final lighterColor =
+        HSLColor.fromColor(widget.color).withLightness(0.55).toColor();
+
+    return AnimatedBuilder(
+      animation: _shimmer,
+      builder: (context, child) {
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 20),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              label,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            gradient: LinearGradient(
+              colors: [widget.color, lighterColor, widget.color],
+              stops: [0.0, _shimmer.value, 1.0],
             ),
-          ],
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withValues(alpha: 0.35),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onPressed,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (widget.icon != null) ...[
+                  Icon(widget.icon, size: 20, color: Colors.white),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  widget.label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

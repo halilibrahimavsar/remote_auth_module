@@ -379,7 +379,7 @@ class _ZenLoginPageState extends State<ZenLoginPage>
   }
 }
 
-class _ZenInput extends StatelessWidget {
+class _ZenInput extends StatefulWidget {
   const _ZenInput({
     required this.controller,
     required this.label,
@@ -397,6 +397,38 @@ class _ZenInput extends StatelessWidget {
   final TextInputType? keyboardType;
 
   @override
+  State<_ZenInput> createState() => _ZenInputState();
+}
+
+class _ZenInputState extends State<_ZenInput>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _focusAnim;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        _focusAnim.forward();
+      } else {
+        _focusAnim.reverse();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusAnim.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -404,7 +436,7 @@ class _ZenInput extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
-            label.toUpperCase(),
+            widget.label.toUpperCase(),
             style: const TextStyle(
               color: Color(0xFF6B705C),
               fontSize: 11,
@@ -413,34 +445,51 @@ class _ZenInput extends StatelessWidget {
             ),
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFF6B705C).withValues(alpha: 0.08),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF6B705C).withValues(alpha: 0.03),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
+        AnimatedBuilder(
+          animation: _focusAnim,
+          builder: (context, child) {
+            final v = _focusAnim.value;
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color:
+                      Color.lerp(
+                        const Color(0xFF6B705C).withValues(alpha: 0.08),
+                        const Color(0xFF6B705C).withValues(alpha: 0.35),
+                        v,
+                      )!,
+                  width: 1.0 + v * 0.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(
+                      0xFF6B705C,
+                    ).withValues(alpha: 0.03 + 0.08 * v),
+                    blurRadius: 15 + 10 * v,
+                    offset: const Offset(0, 8),
+                    spreadRadius: v * 2,
+                  ),
+                ],
               ),
-            ],
-          ),
+              child: child,
+            );
+          },
           child: TextField(
-            controller: controller,
-            obscureText: obscureText,
-            keyboardType: keyboardType,
+            controller: widget.controller,
+            focusNode: _focusNode,
+            obscureText: widget.obscureText,
+            keyboardType: widget.keyboardType,
             cursorColor: const Color(0xFF6B705C),
             style: const TextStyle(color: Color(0xFF333533), fontSize: 16),
             decoration: InputDecoration(
               prefixIcon: Icon(
-                icon,
+                widget.icon,
                 size: 22,
                 color: const Color(0xFF6B705C).withValues(alpha: 0.3),
               ),
-              suffixIcon: suffixIcon,
+              suffixIcon: widget.suffixIcon,
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 20,
@@ -454,7 +503,7 @@ class _ZenInput extends StatelessWidget {
   }
 }
 
-class _ZenMajorButton extends StatelessWidget {
+class _ZenMajorButton extends StatefulWidget {
   const _ZenMajorButton({
     required this.label,
     required this.onPressed,
@@ -466,29 +515,65 @@ class _ZenMajorButton extends StatelessWidget {
   final bool isLoading;
 
   @override
+  State<_ZenMajorButton> createState() => _ZenMajorButtonState();
+}
+
+class _ZenMajorButtonState extends State<_ZenMajorButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _shimmer;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmer = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _shimmer.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 60,
-      decoration: BoxDecoration(
-        color: const Color(0xFF6B705C),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF6B705C).withValues(alpha: 0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+    return AnimatedBuilder(
+      animation: _shimmer,
+      builder: (context, child) {
+        return Container(
+          width: double.infinity,
+          height: 60,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              colors: const [
+                Color(0xFF6B705C),
+                Color(0xFF8B9474),
+                Color(0xFF6B705C),
+              ],
+              stops: [0.0, _shimmer.value, 1.0],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6B705C).withValues(alpha: 0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
+          child: child,
+        );
+      },
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: isLoading ? null : onPressed,
+          onTap: widget.isLoading ? null : widget.onPressed,
           borderRadius: BorderRadius.circular(16),
           child: Center(
             child:
-                isLoading
+                widget.isLoading
                     ? const SizedBox(
                       width: 24,
                       height: 24,
@@ -498,7 +583,7 @@ class _ZenMajorButton extends StatelessWidget {
                       ),
                     )
                     : Text(
-                      label,
+                      widget.label,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 17,
@@ -610,20 +695,25 @@ class _PetalsPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint =
-        Paint()
-          ..color = const Color(0xFF6B705C).withValues(alpha: 0.05)
-          ..style = PaintingStyle.fill;
+    final rng = math.Random(27);
 
-    for (var i = 0; i < 8; i++) {
-      final t = (progress + (i / 8)) % 1.0;
-      final x = size.width * (0.1 + 0.8 * math.sin(i * 1.5 + t * 0.5));
-      final y = size.height * (1.1 - (t * 1.2));
+    for (var i = 0; i < 14; i++) {
+      final t = (progress + (i / 14)) % 1.0;
+      final x = size.width * (0.05 + 0.9 * math.sin(i * 1.5 + t * 0.5));
+      final y = size.height * (1.15 - (t * 1.3));
       final rotation = t * math.pi * 2 + (i * 0.5);
+      final scale = 0.6 + rng.nextDouble() * 0.8;
+
+      // Alternate between sage green and soft pink petals
+      final color =
+          i % 3 == 0
+              ? const Color(0xFFD4A5A5).withValues(alpha: 0.08)
+              : const Color(0xFF6B705C).withValues(alpha: 0.05);
 
       canvas.save();
       canvas.translate(x, y);
       canvas.rotate(rotation);
+      canvas.scale(scale);
 
       final path =
           Path()
@@ -631,7 +721,12 @@ class _PetalsPainter extends CustomPainter {
             ..quadraticBezierTo(10, -15, 0, -30)
             ..quadraticBezierTo(-10, -15, 0, 0);
 
-      canvas.drawPath(path, paint);
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.fill,
+      );
       canvas.restore();
     }
   }

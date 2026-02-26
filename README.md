@@ -14,10 +14,11 @@ Drop one widget into your app and get a complete, animated, and premium authenti
 3. [Platform Setup (Do This First!)](#-platform-setup-do-this-first)
 4. [Three Ways to Integrate](#-three-ways-to-integrate)
 5. [Template Gallery](#-template-gallery)
-6. [AuthTemplateConfig — The Control Panel](#-authtemplateconfig--the-control-panel)
-7. [Do's and Don'ts](#-dos-and-donts)
-8. [Troubleshooting & Common Mistakes](#-troubleshooting--common-mistakes)
-9. [Further Reading](#-further-reading)
+6. [AuthManagerPage — Post-Login Profile Management](#-authmanagerpage--post-login-profile-management)
+7. [AuthTemplateConfig — The Control Panel](#-authtemplateconfig--the-control-panel)
+8. [Do's and Don'ts](#-dos-and-donts)
+9. [Troubleshooting & Common Mistakes](#-troubleshooting--common-mistakes)
+10. [Further Reading](#-further-reading)
 
 ---
 
@@ -284,6 +285,60 @@ Every template is a `StatefulWidget` that wraps the full auth lifecycle.
 | `RetroAuthFlow` | CRT scanlines, 8-bit glitch effects | Retro-themed, gaming apps |
 
 All templates **automatically include** login, registration, forgot password, and email verification pages styled to match.
+
+---
+
+## 👤 AuthManagerPage — Post-Login Profile Management
+
+A premium, ready-to-use profile management page that works with any template. Drop it in after authentication to give users account management out-of-the-box.
+
+**Features:**
+- Animated avatar with pulsing glow ring
+- Inline display name editing
+- Provider badges (Email, Google, Phone, Guest)
+- Change password dialog (email/password users)
+- Email verification prompt (unverified users)
+- Sign out with confirmation
+- Extensible with custom action tiles
+
+### Basic Usage
+
+```dart
+NovaAuthFlow(
+  config: const AuthTemplateConfig(showGoogleSignIn: true),
+  authenticatedBuilder: (context, user) {
+    // Drop in the manager page as your post-login screen
+    return const AuthManagerPage();
+  },
+)
+```
+
+### With Custom Actions
+
+```dart
+AuthManagerPage(
+  onSignedOut: () => Navigator.pushReplacementNamed(context, '/login'),
+  headerGradientColors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
+  additionalActions: [
+    AuthManagerAction(
+      icon: Icons.settings,
+      label: 'App Settings',
+      subtitle: 'Theme, language, notifications',
+      onTap: () => Navigator.pushNamed(context, '/settings'),
+    ),
+    AuthManagerAction(
+      icon: Icons.delete_forever,
+      label: 'Delete Account',
+      subtitle: 'Permanently remove your data',
+      iconColor: Colors.red,
+      onTap: () => _confirmDeleteAccount(),
+    ),
+  ],
+)
+```
+
+> [!TIP]
+> The `AuthManagerPage` uses the same `AuthBloc` as the login templates. When used inside an `*AuthFlow` widget's `authenticatedBuilder`, the BLoC is already available — no extra setup needed.
 
 ---
 

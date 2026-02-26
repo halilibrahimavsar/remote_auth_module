@@ -13,6 +13,7 @@ export 'src/domain/repositories/auth_repository.dart';
 export 'src/presentation/bloc/auth_bloc.dart';
 export 'src/presentation/bloc/auth_event.dart';
 export 'src/presentation/bloc/auth_state.dart';
+export 'src/presentation/pages/auth_manager_page.dart';
 export 'src/presentation/pages/change_password_page.dart';
 export 'src/presentation/pages/email_verification_page.dart';
 export 'src/presentation/pages/forgot_password_page.dart';

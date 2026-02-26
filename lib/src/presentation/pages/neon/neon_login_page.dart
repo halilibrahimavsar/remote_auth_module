@@ -691,7 +691,7 @@ class _NeonParticlePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rng = Random(42);
-    const count = 20;
+    const count = 30;
 
     for (var i = 0; i < count; i++) {
       final baseX = rng.nextDouble() * size.width;
@@ -702,12 +702,25 @@ class _NeonParticlePainter extends CustomPainter {
       final x = baseX + sin(progress * 2 * pi * speed + phase) * 30;
       final y = (baseY - progress * size.height * 0.3 * speed) % size.height;
 
+      final alpha = 0.15 + rng.nextDouble() * 0.15;
       final color =
           i.isEven
-              ? _neonBlue.withValues(alpha: 0.15 + rng.nextDouble() * 0.15)
-              : _neonPink.withValues(alpha: 0.1 + rng.nextDouble() * 0.1);
+              ? _neonBlue.withValues(alpha: alpha)
+              : _neonPink.withValues(alpha: alpha * 0.7);
 
       final r = 1.5 + rng.nextDouble() * 2;
+
+      // Glow trail
+      if (i < 15) {
+        final trailAlpha = alpha * 0.3;
+        canvas.drawCircle(
+          Offset(x - 2, y + 3),
+          r * 2,
+          Paint()
+            ..color = color.withValues(alpha: trailAlpha)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+        );
+      }
 
       canvas.drawCircle(
         Offset(x, y),
